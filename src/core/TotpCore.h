@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -19,7 +19,7 @@
 
 /**
  * Password Safe Core library two factor authentication related structs and
- * funtionality connecting PwSafe Core users (i.e., UI/CLI) with TOTP internals.
+ * functionality connecting PwSafe Core users (i.e., UI/CLI) with TOTP internals.
  */
 
 class CItemData;
@@ -30,7 +30,7 @@ namespace PWSTotp {
     Success = 0,
     InvalidTotpConfiguration = 2,
     TotpKeyNotFound = 3,
-    ConvertKeyToUtf8Failure = 4,
+    InvalidCharactersInKey = 4,
     KeyBase32DecodingFailure = 5,
   };
 

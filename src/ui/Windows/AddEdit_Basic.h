@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -56,6 +56,7 @@ public:
   CStaticExtn m_stc_title;
   CStaticExtn m_stc_username;
   CStaticExtn m_stc_password;
+  CStaticExtn m_stcTwoFactorCode;
   CStaticExtn m_stc_notes;
   CStaticExtn m_stc_URL;
   CStaticExtn m_stc_email;
@@ -115,6 +116,7 @@ protected:
   afx_msg void OnCopyPassword();
   afx_msg void OnShowPassword();
   afx_msg void OnCopyTwoFactorCode();
+  afx_msg void OnTwoFactorCodeStaticClicked();
   afx_msg void OnSTCExClicked(UINT nId);
   afx_msg void OnLaunch();
   afx_msg void OnSendEmail();
@@ -143,10 +145,10 @@ private:
                         const bool bIsEdit, const CItemData::EntryType InputType, 
                         pws_os::CUUID &base_uuid, int &ibasedata, bool &b_msg_issued);
   void SetGroupComboBoxWidth();
-  void ShowHideBaseInfo(const CItemData::EntryType &entrytype, CSecString &csBase);
+  void ShowHideBaseInfo(const CItemData::EntryType &entrytype, const CSecString &csBase);
   void SetupAuthenticationCodeUiElements();
   void StopAuthenticationCodeUi();
-  bool UpdateAuthCode();
+  void UpdateAuthCode();
   PWSTotp::TOTP_Result ValidateTotpConfiguration(double *pRatio = nullptr);
 
   CSecString GetTwoFactorKey();
@@ -164,7 +166,11 @@ private:
 
   CBitmap m_CopyPswdBitmap;
   StringX m_sxLastAuthCode;
-  bool m_bCopyToClipboard;
+  bool m_bTwoFactorCodeClipboard = false;
+  bool m_bTwoFactorCodeClipboardFirstTime = false;
+  bool m_bTwoFactorCodeShowStatic = false;
+  CFont m_fontTwoFactorCodeStatic;
+  const wchar_t* m_pszNotShowingCode = L"********";
 };
 //-----------------------------------------------------------------------------
 // Local variables:

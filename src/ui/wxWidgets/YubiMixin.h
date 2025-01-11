@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -25,7 +25,7 @@ class wxWindow;
 class YubiMixin
 {
  public:
-  enum {POLLING_INTERVAL_OFF = 0, POLLING_INTERVAL_MIN = 100, POLLING_INTERVAL_DEFAULT = 500, POLLING_INTERVAL_MAX = 60000}; // mSec
+  enum {POLLING_INTERVAL_OFF = 0, POLLING_INTERVAL_MIN = 100, POLLING_INTERVAL_DEFAULT = 900, POLLING_INTERVAL_MAX = 60000}; // mSec
   YubiMixin() : m_present(false), m_pollingTimer(nullptr), m_btn(nullptr), m_status(nullptr) {}
   ~YubiMixin() { delete m_pollingTimer; }
 
@@ -57,7 +57,10 @@ class YubiMixin
   static int GetPollingInterval() { return s_pollingInterval; }
   static bool IsPollingEnabled() { return s_pollingInterval > YubiMixin::POLLING_INTERVAL_OFF; }
 
-  enum { POLLING_TIMER_ID = 83, POLLING_TIMER2_ID = 84 };  
+  enum { POLLING_TIMER_NONE = -1, POLLING_TIMER_ID = 83 };
+
+private:
+  void updateLayout();
 
  private:
   bool m_present; // key present?

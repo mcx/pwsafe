@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -554,9 +554,9 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
 }
 
 struct XMLFilterWriterToString {
+  XMLFilterWriterToString(const XMLFilterWriterToString&) = default;
   XMLFilterWriterToString(coStringXStream &os, bool bWithFormatting) :
-  m_os(os), m_bWithFormatting(bWithFormatting)
-  {}
+                          m_os(os), m_bWithFormatting(bWithFormatting) {}
 
   // operator
   void operator()(const pair<const st_Filterkey, st_filters> &p)

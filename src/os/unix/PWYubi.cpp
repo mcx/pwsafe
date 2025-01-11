@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -126,7 +126,7 @@ bool PWYubi::WriteSK(const unsigned char *yubi_sk_bin, size_t sklen)
     if (ykey == nullptr)
       goto done;
     if (!yk_get_status(ykey, st) ||
-        (ykp_configure_version(cfg, st), !ykp_set_tktflag_CHAL_RESP(cfg,true)) ||
+        (static_cast<void>(ykp_configure_version(cfg, st)), !ykp_set_tktflag_CHAL_RESP(cfg,true)) ||
         !ykp_set_cfgflag_CHAL_HMAC(cfg, true) ||
         !ykp_set_cfgflag_HMAC_LT64(cfg, true) ||
         !ykp_set_cfgflag_CHAL_BTN_TRIG(cfg, true) ||

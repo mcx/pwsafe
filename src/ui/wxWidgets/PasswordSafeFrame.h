@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -188,6 +188,7 @@ enum {
   ID_LANGUAGE_POLISH,
   ID_LANGUAGE_RUSSIAN,
   ID_LANGUAGE_SPANISH,
+  ID_LANGUAGE_SLOVENIAN,
   ID_LANGUAGE_SWEDISH,
   ID_LANGUAGE_END
 };
@@ -735,8 +736,8 @@ private:
   void SaveLayoutPreferences();
   bool LoadLayoutPreferences();
 
-    void DoCreateShortcut(CItemData* item);
-  void DoDeleteItems(bool askConfirmation, int num_children);
+  void DoCreateShortcut(CItemData* item);
+  void DoDeleteItems(bool askConfirmation, bool isGroup);
   void DoImportXML(wxString filename);
   void DoImportText(wxString filename);
   void DoImportKeePass(wxString filename);

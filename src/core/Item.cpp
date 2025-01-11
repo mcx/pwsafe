@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -227,6 +227,7 @@ bool CItem::SetTextField(int ft, const unsigned char *value,
 
 void CItem::SetTime(const int whichtime, time_t t)
 {
+  ASSERT(IsTimeField(whichtime));
   unsigned char buf[sizeof(time_t)];
   putInt(buf, t);
   SetField(whichtime, buf, sizeof(time_t));
@@ -251,11 +252,8 @@ void CItem::GetField(const CItemField &field,
 
 void CItem::GetField(const CItemField &field, std::vector<unsigned char> &v) const
 {
-  size_t length = field.GetLength();
-  if (length < TwoFish::BLOCKSIZE)
-    length = TwoFish::BLOCKSIZE;
+  size_t length = roundUp(field.GetLength(), BlowFish::BLOCKSIZE);
   v.resize(length);
-  length = v.size();
   field.Get(& v[0], length, MakeBlowFish());
   v.resize(length);
 }
@@ -300,6 +298,7 @@ StringX CItem::GetField(const CItemField &field) const
 
 void CItem::GetTime(int whichtime, time_t &t) const
 {
+  ASSERT(IsTimeField(whichtime));
   auto fiter = m_fields.find(whichtime);
   if (fiter != m_fields.end()) {
     unsigned char in[TwoFish::BLOCKSIZE] = {0}; // required by GetField

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -54,7 +54,7 @@ static LOGFONT DragFixLogfont = {
 
 static void tweakFontSizes()
 {
-  const UINT defDPI = 96;
+  const UINT defDPI = WinUtil::defDPI;
   const UINT curDPI = WinUtil::GetDPI();
 
   auto adjust = [&defDPI, &curDPI](LONG& height)
@@ -626,7 +626,7 @@ bool Fonts::IsCharacterSupported(std::wstring &sSymbol, const bool bTreeListFont
   return bSupported;
 }
 
-bool Fonts::CreateFontMatchingWindowHeight(CWnd& wnd, CFont& font)
+bool Fonts::CreateFontMatchingWindowHeight(CWnd& wnd, CFont& font, int cMaxCharWidth)
 {
   ASSERT(::IsWindow(wnd.m_hWnd));
   if (!::IsWindow(wnd.m_hWnd))
@@ -640,6 +640,9 @@ bool Fonts::CreateFontMatchingWindowHeight(CWnd& wnd, CFont& font)
   if (!fontWnd->GetLogFont(&lf))
     return false;
   lf.lfHeight = rcClient.Height();
+  if (cMaxCharWidth > 0) {
+    lf.lfWidth = rcClient.Width() / cMaxCharWidth;
+  }
   font.DeleteObject();
   return font.CreateFontIndirect(&lf);
 }

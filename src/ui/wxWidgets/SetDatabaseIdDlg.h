@@ -2,7 +2,7 @@
  * Initial version created as 'SetDatabaseIdDlg.h'
  * by rafaelx on 2023-02-21.
  *
- * Copyright (c) 2019-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2019-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -65,11 +65,11 @@ private:
   //*)
 
   //(*Identifiers(SetDatabaseIdDlg)
-  static const long ID_SPINCTRL_DATABASEID;
-  static const long ID_COLORPICKERCTRL_LOCKEDTEXTCOLOR;
-  static const long ID_STATICBITMAP_LOCKEDICON;
-  static const long ID_COLORPICKERCTRL_UNLOCKEDTEXTCOLOR;
-  static const long ID_STATICBITMAP_UNLOCKEDICON;
+  static const wxWindowID ID_SPINCTRL_DATABASEID;
+  static const wxWindowID ID_COLORPICKERCTRL_LOCKEDTEXTCOLOR;
+  static const wxWindowID ID_STATICBITMAP_LOCKEDICON;
+  static const wxWindowID ID_COLORPICKERCTRL_UNLOCKEDTEXTCOLOR;
+  static const wxWindowID ID_STATICBITMAP_UNLOCKEDICON;
   //*)
 
   //(*Declarations(SetDatabaseIdDlg)

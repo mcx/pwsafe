@@ -2,7 +2,7 @@
  * Initial version created as 'SetDatabaseIdDlg.cpp'
  * by rafaelx on 2023-02-21.
  *
- * Copyright (c) 2019-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2019-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -25,11 +25,11 @@
 #include "graphics/unlocked_tray.xpm"
 
 //(*IdInit(SetDatabaseIdDlg)
-const long SetDatabaseIdDlg::ID_SPINCTRL_DATABASEID = wxNewId();
-const long SetDatabaseIdDlg::ID_COLORPICKERCTRL_LOCKEDTEXTCOLOR = wxNewId();
-const long SetDatabaseIdDlg::ID_STATICBITMAP_LOCKEDICON = wxNewId();
-const long SetDatabaseIdDlg::ID_COLORPICKERCTRL_UNLOCKEDTEXTCOLOR = wxNewId();
-const long SetDatabaseIdDlg::ID_STATICBITMAP_UNLOCKEDICON = wxNewId();
+const wxWindowID SetDatabaseIdDlg::ID_SPINCTRL_DATABASEID = wxNewId();
+const wxWindowID SetDatabaseIdDlg::ID_COLORPICKERCTRL_LOCKEDTEXTCOLOR = wxNewId();
+const wxWindowID SetDatabaseIdDlg::ID_STATICBITMAP_LOCKEDICON = wxNewId();
+const wxWindowID SetDatabaseIdDlg::ID_COLORPICKERCTRL_UNLOCKEDTEXTCOLOR = wxNewId();
+const wxWindowID SetDatabaseIdDlg::ID_STATICBITMAP_UNLOCKEDICON = wxNewId();
 //*)
 
 BEGIN_EVENT_TABLE(SetDatabaseIdDlg,wxDialog)

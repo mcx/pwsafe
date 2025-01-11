@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -205,11 +205,15 @@ stringT pws_os::getsafedir(void)
 
 stringT pws_os::getxmldir(void)
 {
+   stringT xmldir = pws_os::getenv("PWS_XMLDIR", true);
+  if (xmldir.empty()) {
 #ifdef __FreeBSD__
-  return _T("/usr/local/share/pwsafe/xml/");
+  xmldir = _T("/usr/local/share/pwsafe/xml/");
 #else
-  return _T("/usr/share/passwordsafe/xml/");
+  xmldir = _T("/usr/share/passwordsafe/xml/");
 #endif
+  }
+  return xmldir;
 }
 
 stringT pws_os::gethelpdir(void)

@@ -160,6 +160,7 @@
 #define IDS_FILEOPENERROR               5319
 #define IDS_CANTOPENREADING             5320
 #define IDS_UNKNOWNERROR                5321
+#define IDS_CONFIRMOLDPHRASE            5322
 #define IDS_NEWFORMAT2                  5323
 #define IDS_VERSIONWARNING              5324
 #define IDS_CANTOPENWRITING             5325
@@ -273,19 +274,7 @@
 #define IDS_RECORDUNKNOWNFIELDS         5450
 #define IDS_IMPORTFILE                  5451
 #define IDS_EXPORTFILE                  5453
-#define IDS_ALIASNOTFOUNDA              5455
-#define IDS_ALIASNOTFOUND0A             5456
-#define IDS_ALIASNOTFOUND0B             5457
-#define IDS_ALIASNOTFOUND1A             5458
-#define IDS_ALIASNOTFOUND1B             5459
-#define IDS_ALIASNOTFOUND2A             5460
-#define IDS_ALIASNOTFOUND2B             5461
-#define IDS_ALIASNOTFOUND2C             5462
-#define IDS_ALIASNOTFOUNDZ              5463
 #define IDS_DDBASEISALIAS               5464
-#define IDS_BASEISALIAS                 5465
-#define IDS_ALIASCANTREFERTOITSELF      5466
-#define IDS_BASEHASNOTITLE              5467
 #define IDS_CLOSE_B4_CHECK              5468
 #define IDS_CONFIRM_CLOSE               5469
 #define IDS_LATEST_VERSION              5470
@@ -308,7 +297,6 @@
 #define IDS_VISIT_WEBSITE               5489
 #define IDS_ICON                        5496
 #define IDS_ABASE_MISSING               5497
-#define IDS_ABASEINVALID                5499
 #define IDS_SBASEINVALID                5500
 #define IDS_MUSTHAVETARGET              5501
 #define IDS_VIEWSHORTCUTS               5502
@@ -791,6 +779,9 @@
 #define IDS_INCLUDEDBASES               6055
 #define IDS_GC_ONE_CHILD                6060
 #define IDS_GC_N_CHILDREN               6061
+#define IDS_USEANYWAY                   6062
+#define IDS_DISCARD                     6063
+#define IDS_SAVE                        6064
 
 #define IDS_SCRCAP_TT_STATE_ERROR                           6067
 #define IDS_SCRCAP_TT_DISALLOWED_DEFAULT                    6068
@@ -815,10 +806,10 @@
 #define IDS_TWOFACTORKEY                                    6101
 #define IDS_TWOFACTORCODEBUTTON_CONFIGURED                  6102
 #define IDS_TWOFACTORCODEBUTTON_NOTCONFIGURED               6103
-#define IDS_TWOFACTORCODE_COPIED                            6104
-#define IDS_TWOFACTORCODE_ERROR_TITLE                       6105
-#define IDS_TWOFACTORCODE_ERROR_MESSAGE                     6106
-#define IDS_TWOFACTORCODE_ERROR_KEYEMPTY                    6107
-#define IDS_TWOFACTORCODE_ERROR_KEYNOTFOUND                 6108
+#define IDS_TWOFACTORCODESTATIC_CONFIGURED                  6104
+#define IDS_TWOFACTORCODE_COPIED                            6105
+#define IDS_TWOFACTORCODE_ERROR_TITLE                       6106
+#define IDS_TWOFACTORCODE_ERROR_MESSAGE                     6107
+#define IDS_TWOFACTORCODE_ERROR_KEYEMPTY                    6108
 #define IDS_AC_STATIC_TWOFACTORCODE                         6115
 #define IDS_DISPLAYAUTHCODE_TITLEFMT                        6116

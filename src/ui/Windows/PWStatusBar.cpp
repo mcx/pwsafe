@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -52,8 +52,8 @@ CPWStatusBar::CPWStatusBar()
 
   BITMAP bm;
   origBmp.GetBitmap(&bm);
-  m_bmWidth = MulDiv(bm.bmWidth, dpi, 96);
-  m_bmHeight = MulDiv(bm.bmHeight, dpi, 96);
+  m_bmWidth = MulDiv(bm.bmWidth, dpi, WinUtil::defDPI);
+  m_bmHeight = MulDiv(bm.bmHeight, dpi, WinUtil::defDPI);
 
   WinUtil::ResizeBitmap(origBmp, m_FilterBitmap, m_bmWidth, m_bmHeight);
   origBmp.DeleteObject();

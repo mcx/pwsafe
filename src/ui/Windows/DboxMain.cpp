@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -797,8 +797,8 @@ void DboxMain::InitPasswordSafe()
   // Scale for DPI stuff
   // from https://docs.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows
   int dpi = WinUtil::GetDPI(m_hWnd);
-  int dpiScaledWidth = MulDiv(bm.bmWidth, dpi, 96);
-  int dpiScaledHeight = MulDiv(bm.bmHeight, dpi, 96);
+  int dpiScaledWidth = MulDiv(bm.bmWidth, dpi, WinUtil::defDPI);
+  int dpiScaledHeight = MulDiv(bm.bmHeight, dpi, WinUtil::defDPI);
 
   WinUtil::ResizeBitmap(bitmap, scaledBitmap, dpiScaledWidth, dpiScaledHeight);
   bitmap.DeleteObject();
@@ -1160,7 +1160,7 @@ BOOL DboxMain::OnInitDialog()
   m_UnLockedIcon = app.LoadIcon(IDI_UNLOCKEDICON);
 
   m_ClosedIcon = app.LoadIcon(IDI_CORNERICON);
-  auto initialIcon = m_core.IsDbOpen() ? m_LockedIcon : m_ClosedIcon;
+  auto initialIcon = m_core.IsDbFileSet() ? m_LockedIcon : m_ClosedIcon;
   m_pTrayIcon = new CSystemTray(this, PWS_MSG_ICON_NOTIFY, L"PasswordSafe",
                                 initialIcon, m_RUEList,
                                 PWS_MSG_ICON_NOTIFY, IDR_POPTRAY);
@@ -3795,10 +3795,19 @@ void DboxMain::PlaceWindow(CWnd *pWnd, CRect *pRect, UINT uiShowCmd)
   WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
   HRGN hrgnWork = WinUtil::GetWorkAreaRegion();
 
+  auto curDPI = WinUtil::GetDPI(nullptr); // need system value
+
+  // adjust rect for current scale factor
+  CRect adjRect;
+  adjRect.bottom = MulDiv(pRect->bottom, curDPI, WinUtil::defDPI);
+  adjRect.top =    MulDiv(pRect->top, curDPI, WinUtil::defDPI);
+  adjRect.left =   MulDiv(pRect->left, curDPI, WinUtil::defDPI);
+  adjRect.right =  MulDiv(pRect->right, curDPI, WinUtil::defDPI);
+
   pWnd->GetWindowPlacement(&wp);  // Get min/max positions - then add what we know
   wp.flags = 0;
   wp.showCmd = uiShowCmd;
-  wp.rcNormalPosition = *pRect;
+  wp.rcNormalPosition = adjRect;
 
   if (!RectInRegion(hrgnWork, &wp.rcNormalPosition)) {
     if (GetSystemMetrics(SM_CMONITORS) > 1)

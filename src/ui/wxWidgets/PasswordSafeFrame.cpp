@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -404,7 +404,7 @@ PasswordSafeFrame::~PasswordSafeFrame()
 {
 ////@begin PasswordSafeFrame destruction
 ////@end PasswordSafeFrame destruction
-  if (m_core.IsDbOpen())
+  if (m_core.IsDbFileSet())
     SaveIfChanged(); // moved here from PWSafeApp::OnExit(), where it's called too late.
 
   m_AuiManager.UnInit();
@@ -464,6 +464,7 @@ void PasswordSafeFrame::RegisterLanguageMenuItems() {
   AddLanguage( ID_LANGUAGE_KOREAN,    wxLANGUAGE_KOREAN,  L"Korean"   );  /* code: 'ko' */
   AddLanguage( ID_LANGUAGE_POLISH,    wxLANGUAGE_POLISH,  L"Polish"   );  /* code: 'pl' */
   AddLanguage( ID_LANGUAGE_RUSSIAN,   wxLANGUAGE_RUSSIAN, L"Russian"  );  /* code: 'ru' */
+  AddLanguage( ID_LANGUAGE_SLOVENIAN, wxLANGUAGE_SLOVENIAN, L"Slovenian"  );  /* code: 'sl' */
   AddLanguage( ID_LANGUAGE_SPANISH,   wxLANGUAGE_SPANISH, L"Spanish"  );  /* code: 'es' */
   AddLanguage( ID_LANGUAGE_SWEDISH,   wxLANGUAGE_SWEDISH, L"Swedish"  );  /* code: 'sv' */
 
@@ -520,10 +521,10 @@ void PasswordSafeFrame::CreateMenubar()
 
   // Added for window managers which have no iconization concept
   if (m_sysTray->GetTrayStatus() == SystemTray::TrayStatus::LOCKED) {
-    menuFile->Append(ID_UNLOCK_SAFE, _("&Unlock Safe\tCtrl+I"), wxEmptyString, wxITEM_NORMAL);
+    menuFile->Append(ID_UNLOCK_SAFE, _("&Unlock\tCtrl+I"), wxEmptyString, wxITEM_NORMAL);
   }
   else {
-    menuFile->Append(ID_LOCK_SAFE, _("&Lock Safe\tCtrl+J"), wxEmptyString, wxITEM_NORMAL);
+    menuFile->Append(ID_LOCK_SAFE, _("&Lock\tCtrl+J"), wxEmptyString, wxITEM_NORMAL);
   }
 
   if (wxGetApp().recentDatabases().GetCount() > 0) {
@@ -534,17 +535,17 @@ void PasswordSafeFrame::CreateMenubar()
     }
     // Most recently used DBs listed as submenu of File menu
     else {
-      auto recentSafesMenu = new wxMenu;
-      wxGetApp().recentDatabases().AddFilesToMenu(recentSafesMenu);
+      auto recentDatabasesMenu = new wxMenu;
+      wxGetApp().recentDatabases().AddFilesToMenu(recentDatabasesMenu);
       menuFile->AppendSeparator();
-      menuFile->Append(ID_RECENTSAFES, _("&Recent Safes..."), recentSafesMenu);
+      menuFile->Append(ID_RECENTSAFES, _("&Recent Databases..."), recentDatabasesMenu);
     }
   }
   else {
     menuFile->AppendSeparator();
   }
 
-  menuFile->Append(ID_MENU_CLEAR_MRU, _("Clear Recent Safe List"), wxEmptyString, wxITEM_NORMAL);
+  menuFile->Append(ID_MENU_CLEAR_MRU, _("Clear Recently Opened List"), wxEmptyString, wxITEM_NORMAL);
   menuFile->AppendSeparator();
   menuFile->Append(wxID_SAVE, _("&Save..."), wxEmptyString, wxITEM_NORMAL);
   menuFile->Append(wxID_SAVEAS, _("Save &As..."), wxEmptyString, wxITEM_NORMAL);
@@ -680,7 +681,7 @@ void PasswordSafeFrame::CreateMenubar()
   /////////////////////////////////////////////////////////////////////////////
 
   auto menuManage = new wxMenu;
-  menuManage->Append(ID_CHANGECOMBO, _("&Change Safe Combination..."), wxEmptyString, wxITEM_NORMAL);
+  menuManage->Append(ID_CHANGECOMBO, _("&Change Master Password..."), wxEmptyString, wxITEM_NORMAL);
   menuManage->AppendSeparator();
   menuManage->Append(ID_BACKUP, _("Make &Backup...\tCtrl+B"), wxEmptyString, wxITEM_NORMAL);
   menuManage->Append(ID_RESTORE, _("&Restore from Backup...\tCtrl+R"), wxEmptyString, wxITEM_NORMAL);
@@ -935,8 +936,6 @@ void PasswordSafeFrame::RefreshToolbarButtons()
  */
 void PasswordSafeFrame::UpdateMainToolbarBitmaps()
 {
-  auto pref = PWSprefs::GetInstance();
-  wxASSERT(pref);
   auto toolbar = GetToolBar();
   wxASSERT(toolbar);
 
@@ -1158,7 +1157,7 @@ wxIcon PasswordSafeFrame::GetIconResource( const wxString& name )
 
 void PasswordSafeFrame::SetTitle(const wxString& title)
 {
-  wxString newtitle = _T("PasswordSafe");
+  wxString newtitle = _T("Password Safe");
   if (!title.empty()) {
     newtitle += _T(" - ");
     StringX fname = tostringx(title);
@@ -1390,8 +1389,11 @@ int PasswordSafeFrame::Open(const wxString &fname)
   if (rc != PWScore::SUCCESS)
     return rc;
 
+  // Save the current file name so we can unlock it later.
+  stringT oldfn = GetCurrentFile().c_str();
+
   // prompt for password, try to Load.
-  DestroyWrapper<SafeCombinationPromptDlg> pwdpromptWrapper(this, m_core, fname, false);
+  DestroyWrapper<SafeCombinationPromptDlg> pwdpromptWrapper(this, m_core, fname);
   SafeCombinationPromptDlg* pwdprompt = pwdpromptWrapper.Get();
 
   if (pwdprompt->ShowModal() == wxID_OK) {
@@ -1402,6 +1404,9 @@ int PasswordSafeFrame::Open(const wxString &fname)
       m_InitialTreeDisplayStatusAtOpen = true;
       Show();
       wxGetApp().recentDatabases().AddFileToHistory(fname);
+
+      // The new file is open.  Clear the lock on the old file, if any.
+      m_core.SafeUnlockFile(oldfn);
     }
     return retval;
   } else
@@ -1930,7 +1935,7 @@ CItemData* PasswordSafeFrame::GetBaseEntry(const CItemData *item) const
 
 bool PasswordSafeFrame::CheckReportPresent(int iAction)
 {
-  if(m_core.IsDbOpen()) {
+  if(m_core.IsDbFileSet()) {
     CReport rpt;
     rpt.StartReport(iAction, m_core.GetCurFile().c_str(), false);
     return rpt.ReportExistsOnDisk();
@@ -1954,6 +1959,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
   const bool isTreeViewGroupSelected = isTreeView && m_tree->IsGroupSelected();
   const bool isTreeViewEmpty         = isTreeView && !m_tree->HasItems(); // excludes the invisible root item
   const bool isTreeViewItemSelected  = isTreeView && m_tree->HasSelection();
+  const bool isX11                   = wxUtilities::IsDisplayManagerX11();
 
   pci = GetSelectedEntry();
 
@@ -1965,7 +1971,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
 
   switch (evt.GetId()) {
     case wxID_SAVE:
-      evt.Enable(m_core.IsDbOpen() && !isFileReadOnly && (m_core.HasDBChanged() || m_core.HaveDBPrefsChanged()));
+      evt.Enable(m_core.IsDbFileSet() && !isFileReadOnly && (m_core.HasDBChanged() || m_core.HaveDBPrefsChanged()));
       break;
 
     case wxID_SAVEAS:
@@ -1979,7 +1985,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
 #ifndef NO_YUBI
     case ID_YUBIKEY_MNG:
 #endif
-      evt.Enable(m_core.IsDbOpen());
+      evt.Enable(m_core.IsDbFileSet());
       break;
       
     case ID_REPORT_SYNCHRONIZE:
@@ -2034,21 +2040,21 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
     case ID_SORT_TREE_BY_GROUP:
     case ID_SORT_TREE_BY_NAME:
     case ID_SORT_TREE_BY_DATE:
-      evt.Enable(m_core.IsDbOpen() && isTreeView);
+      evt.Enable(m_core.IsDbFileSet() && isTreeView);
       break;
       
     case ID_EXPORTMENU:
     case ID_COMPARE:
-      evt.Enable(m_core.IsDbOpen() && m_core.GetNumEntries() != 0);
+      evt.Enable(m_core.IsDbFileSet() && m_core.GetNumEntries() != 0);
       break;
 
     case ID_ADDGROUP:
-      evt.Enable((isTreeViewGroupSelected || isTreeViewEmpty || !isTreeViewItemSelected) && !isFileReadOnly && IsTreeSortGroup() && m_core.IsDbOpen());
+      evt.Enable((isTreeViewGroupSelected || isTreeViewEmpty || !isTreeViewItemSelected) && !isFileReadOnly && IsTreeSortGroup() && m_core.IsDbFileSet());
       break;
 
     case ID_EXPANDALL:
     case ID_COLLAPSEALL:
-      evt.Enable(!isTreeViewEmpty && m_core.IsDbOpen());
+      evt.Enable(!isTreeViewEmpty && m_core.IsDbFileSet());
       break;
 
     case ID_RENAME:
@@ -2087,9 +2093,12 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
           (pci->IsNormal() || pci->IsShortcutBase()));
       break;
 
+    case ID_AUTOTYPE:
+      evt.Enable(isX11 && !isTreeViewGroupSelected && pci);
+      break;
+
     case ID_EDIT:
     case ID_COPYPASSWORD:
-    case ID_AUTOTYPE:
     case ID_PASSWORDSUBSET:
     case ID_PASSWORDQRCODE:
       evt.Enable(!isTreeViewGroupSelected && pci);
@@ -2113,16 +2122,19 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
       break;
 
     case ID_SYNCHRONIZE:
+      evt.Enable(!isFileReadOnly && m_core.IsDbFileSet() && m_core.GetNumEntries() != 0);
+      break;
+
     case ID_CHANGECOMBO:
-      evt.Enable(!isFileReadOnly && m_core.IsDbOpen() && m_core.GetNumEntries() != 0);
+      evt.Enable(!isFileReadOnly && m_core.IsDbFileSet());
       break;
 
     case wxID_FIND:
-      evt.Enable(m_core.IsDbOpen() && m_core.GetNumEntries() != 0);
+      evt.Enable(m_core.IsDbFileSet() && m_core.GetNumEntries() != 0);
       break;
 
     case wxID_ADD:
-      evt.Enable(!isFileReadOnly && m_core.IsDbOpen());
+      evt.Enable(!isFileReadOnly && m_core.IsDbFileSet());
       break;
 
     case wxID_DELETE:
@@ -2134,34 +2146,34 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
       break;
 
     case ID_SHOWHIDE_UNSAVED:
-      evt.Enable((m_CurrentPredefinedFilter == UNSAVED) || ((m_CurrentPredefinedFilter == NONE) && m_core.IsDbOpen() && !isFileReadOnly && m_core.HasDBChanged()));
+      evt.Enable((m_CurrentPredefinedFilter == UNSAVED) || ((m_CurrentPredefinedFilter == NONE) && m_core.IsDbFileSet() && !isFileReadOnly && m_core.HasDBChanged()));
       evt.Check(m_CurrentPredefinedFilter == UNSAVED);
       break;
 
     case ID_SHOW_ALL_EXPIRY:
       evt.Enable((m_CurrentPredefinedFilter == EXPIRY) || ((m_CurrentPredefinedFilter == NONE) &&
-       m_core.IsDbOpen() &&
+       m_core.IsDbFileSet() &&
        m_core.GetExpirySize() != 0));
       evt.Check(m_CurrentPredefinedFilter == EXPIRY);
       break;
 
     case ID_SHOW_LAST_FIND_RESULTS:
       evt.Enable((m_CurrentPredefinedFilter == LASTFIND) || ((m_CurrentPredefinedFilter == NONE) &&
-                  m_core.IsDbOpen() &&
+                  m_core.IsDbFileSet() &&
                   m_FilterManager.GetFindFilterSize() != 0));
       evt.Check(m_CurrentPredefinedFilter == LASTFIND);
       break;
 
     case ID_MERGE:
     case ID_IMPORTMENU:
-      evt.Enable(!isFileReadOnly && m_core.IsDbOpen());
+      evt.Enable(!isFileReadOnly && m_core.IsDbFileSet());
       break;
       
     case ID_IMPORT_XML:
 #if (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
       evt.Enable(false);
 #else
-      evt.Enable(!isFileReadOnly && m_core.IsDbOpen());
+      evt.Enable(!isFileReadOnly && m_core.IsDbFileSet());
 #endif
       break;
 
@@ -2177,23 +2189,23 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
     case ID_PWDPOLSM:
     case ID_LOCK_SAFE:
     case ID_SETDATABASEID:
-      evt.Enable(m_core.IsDbOpen() && !m_sysTray->IsLocked());
+      evt.Enable(m_core.IsDbFileSet() && !m_sysTray->IsLocked());
       break;
 
     case ID_UNLOCK_SAFE:
-      evt.Enable(m_core.IsDbOpen() && m_sysTray->IsLocked());
+      evt.Enable(m_core.IsDbFileSet() && m_sysTray->IsLocked());
       break;
 
     case ID_FILTERMENU:
-      evt.Enable(m_core.IsDbOpen());
+      evt.Enable(m_core.IsDbFileSet());
       break;
       
     case ID_EDITFILTER:
-      evt.Enable(m_core.IsDbOpen() && m_CurrentPredefinedFilter == NONE); // Mark unimplemented
+      evt.Enable(m_core.IsDbFileSet() && m_CurrentPredefinedFilter == NONE); // Mark unimplemented
       break;
       
     case ID_APPLYFILTER:
-      evt.Enable(m_core.IsDbOpen() && (m_bFilterActive || CurrentFilter().IsActive()));
+      evt.Enable(m_core.IsDbFileSet() && (m_bFilterActive || CurrentFilter().IsActive()));
       if(m_bFilterActive) {
         m_ApplyClearFilter->SetItemLabel(_("&Clear current"));
       }
@@ -2203,15 +2215,15 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
       break;
       
     case ID_MANAGEFILTERS:
-      evt.Enable(m_core.IsDbOpen() && m_CurrentPredefinedFilter == NONE); // Mark unimplemented
+      evt.Enable(m_core.IsDbFileSet() && m_CurrentPredefinedFilter == NONE); // Mark unimplemented
       break;
       
     case ID_SHOW_EMPTY_GROUP_IN_FILTER:
-      evt.Enable(m_core.IsDbOpen() && isTreeView && m_bFilterActive);
+      evt.Enable(m_core.IsDbFileSet() && isTreeView && m_bFilterActive);
       break;
 
     case ID_SUBVIEWSMENU:
-      evt.Enable(m_core.IsDbOpen());
+      evt.Enable(m_core.IsDbFileSet());
       break;
 
     case ID_CUSTOMIZETOOLBAR:
@@ -2229,10 +2241,10 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
     case ID_CHANGEMODE:
     {
       bool bFileIsReadOnly = true;
-      if(m_core.IsDbOpen()) {
+      if(m_core.IsDbFileSet()) {
         pws_os::FileExists(m_core.GetCurFile().c_str(), bFileIsReadOnly);
       }
-      evt.Enable(m_core.IsDbOpen() && !bFileIsReadOnly);
+      evt.Enable(m_core.IsDbFileSet() && !bFileIsReadOnly);
       break;
     }
     default:
@@ -2242,7 +2254,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
 
 bool PasswordSafeFrame::IsClosed() const
 {
-  return (!m_core.IsDbOpen() && m_core.GetNumEntries() == 0 &&
+  return (!m_core.IsDbFileSet() && m_core.GetNumEntries() == 0 &&
           !m_core.HasDBChanged() && !m_core.AnyToUndo() && !m_core.AnyToRedo());
 }
 
@@ -2433,7 +2445,7 @@ void PasswordSafeFrame::UnlockSafe(bool restoreUI, bool iconizeOnCancel)
   }
 
   if (m_sysTray->IsLocked()) {
-    DestroyWrapper<SafeCombinationPromptDlg> scpWrapper(this, m_core, towxstring(m_core.GetCurFile()), CanCloseDialogs());
+    DestroyWrapper<SafeCombinationPromptDlg> scpWrapper(this, m_core, towxstring(m_core.GetCurFile()));
     SafeCombinationPromptDlg* scp = scpWrapper.Get();
 
     switch (scp->ShowModal()) {
@@ -2451,16 +2463,6 @@ void PasswordSafeFrame::UnlockSafe(bool restoreUI, bool iconizeOnCancel)
           return;
         }
         break;
-      }
-      case (wxID_EXIT):
-      {
-        CloseAllWindows(&TimedTaskChain::CreateTaskChain([](){}), CloseFlags::CLOSE_NORMAL, [this](bool success) {
-          if (!success) {
-            // `this` should be valid here, because we haven't closed DB
-            wxMessageBox(_("Can't close database. There are unsaved changes in opened dialogs."), wxTheApp->GetAppName(), wxOK | wxICON_WARNING, this);
-          }
-        });
-        return;
       }
       case (wxID_CANCEL):
       {
@@ -2498,7 +2500,7 @@ void PasswordSafeFrame::UnlockSafe(bool restoreUI, bool iconizeOnCancel)
     Show(true);
   }
 
-  CreateMenubar(); // Recreate menubar to replace menu item 'Unlock Safe' by 'Lock Safe'
+  CreateMenubar(); // Recreate menubar to replace menu item 'Unlock' by 'Lock'
   UpdateSearchBarVisibility();
   m_AuiManager.Update();
 }
@@ -2514,7 +2516,7 @@ void PasswordSafeFrame::SetFocus()
 void PasswordSafeFrame::OnIconize(wxIconizeEvent& evt) {
 
   // If database was closed than there is nothing to do
-  if (!m_core.IsDbOpen()) {
+  if (!m_core.IsDbFileSet()) {
     return;
   }
 
@@ -2632,7 +2634,7 @@ void PasswordSafeFrame::LockDb()
   if (SaveAndClearDatabaseOnLock()) {
     m_sysTray->SetTrayStatus(SystemTray::TrayStatus::LOCKED);
 
-    CreateMenubar(); // Recreate menubar to replace menu item 'Lock Safe' by 'Unlock Safe'
+    CreateMenubar(); // Recreate menubar to replace menu item 'Lock' by 'Unlock'
   }
 
   // Hide search bar to not populate any search results (see GitHub issue 375)
@@ -2673,7 +2675,7 @@ void PasswordSafeFrame::OnOpenRecentDB(wxCommandEvent& evt)
 
     case PWScore::USER_CANCEL:
       //In case the file doesn't exist, user will have to cancel
-      //the safe combination entry box.  In that call, fall through
+      //the master password entry box.  In that call, fall through
       //to the default case of removing the file from history
       if (pws_os::FileExists(stringT(dbfile)))
         break;          // An existing file doesn't need to be removed from history
@@ -2705,7 +2707,7 @@ void PasswordSafeFrame::UpdateStatusBar()
   if(menuBar != nullptr) {
     menu = menuBar->FindItem(ID_CHANGEMODE);
   }
-  if (m_core.IsDbOpen()) {
+  if (m_core.IsDbFileSet()) {
     wxString text;
     // SB_DBLCLICK pane is set per selected entry, not here
 
@@ -3032,10 +3034,11 @@ void PasswordSafeFrame::CloseDB(std::function<void(bool)> callback)
 
   // Save Application related preferences
   prefs->SaveApplicationPreferences();
-  if( m_core.IsDbOpen() ) {
+  if( m_core.IsDbFileSet() ) {
     int rc = SaveIfChanged();
     if (rc != PWScore::SUCCESS) {
-      CallAfter([callback]() {callback(false);});
+      if (callback != nullptr)
+        CallAfter([callback]() {callback(false);});
       return;
     }
 

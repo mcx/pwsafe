@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -122,15 +122,15 @@ wxMenu* SystemTray::CreatePopupMenu()
 
   switch (m_status) {
     case TrayStatus::UNLOCKED:
-        menu->Append(ID_SYSTRAY_LOCK, _("&Lock Safe"))->SetBitmap(wxBitmap(lock_xpm));
+        menu->Append(ID_SYSTRAY_LOCK, _("&Lock"))->SetBitmap(wxBitmap(lock_xpm));
       break;
 
     case TrayStatus::LOCKED:
-        menu->Append(ID_SYSTRAY_UNLOCK, _("&Unlock Safe"))->SetBitmap(wxBitmap(unlock_xpm));
+        menu->Append(ID_SYSTRAY_UNLOCK, _("&Unlock"))->SetBitmap(wxBitmap(unlock_xpm));
         break;
 
     case TrayStatus::CLOSED:
-        menu->Append(wxID_NONE, _("No Safe Open"));
+        menu->Append(wxID_NONE, _("No Password Database Open"));
         break;
 
     default:

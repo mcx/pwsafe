@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -42,7 +42,7 @@ DLG_HELP(YubiCfgDlg,                                    html/manage_menu.html#yu
 //Options dialog
 PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Backups"),          html/backups_tab.html)
 PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Display"),          html/display_tab.html)
-PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Misc."),            html/misc_tab.html)
+PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Miscellaneous"),    html/misc_tab.html)
 PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Password Policy"),  html/password_policies.html)
 PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Password History"), html/password_history_tab.html)
 PROPSHEET_HELP(OptionsPropertySheetDlg,            _("Security"),         html/security_tab.html)

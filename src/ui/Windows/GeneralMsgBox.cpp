@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -194,16 +194,10 @@ void CGeneralMsgBox::EnableButtons(bool bEnable)
   }
 }
 
-INT_PTR CGeneralMsgBox::MessageBox(LPCWSTR lpText, LPCWSTR lpCaption, 
-                                   UINT uiFlags)
+INT_PTR CGeneralMsgBox::AfxMessageBox(LPCWSTR lpszText, LPCWSTR lpCaption, const std::vector<std::tuple<int, int>>& tuples, int defBtn, UINT uiIcon)
 {
-  // Private member
-  UINT uiType = uiFlags & MB_TYPEMASK;
-  UINT uiIcon = uiFlags & MB_ICONMASK;
-  int iDefB = ((int)uiFlags & MB_DEFMASK) / 256;
-
-  if (lpText != nullptr)
-    SetMsg(lpText);
+  if (lpszText != nullptr)
+    SetMsg(lpszText);
 
   if (lpCaption != nullptr)
     SetTitle(lpCaption);
@@ -214,83 +208,71 @@ INT_PTR CGeneralMsgBox::MessageBox(LPCWSTR lpText, LPCWSTR lpCaption,
     uiIcon = MB_ICONEXCLAMATION;
   SetStandardIcon(uiIcon);
 
-  int num_buttons(0);
-  int ButtonCmdIDs[3];
-  int ButtonCmdTexts[3];
+  if (defBtn >= tuples.size())
+    defBtn = 0;
+
+  CString cs_text;
+  int i = 0;
+  for (const auto & tuple : tuples)
+  {
+    const int id_c = std::get<0>(tuple);
+    const int id_s = std::get<1>(tuple);
+    cs_text.LoadString(id_s);
+    AddButton(id_c, cs_text, i == defBtn, id_c == IDCANCEL);
+    i++;
+  }
+
+  INT_PTR rc = DoModal();
+  return rc;
+}
+
+
+
+INT_PTR CGeneralMsgBox::MessageBox(LPCWSTR lpText, LPCWSTR lpCaption, UINT uiFlags)
+{
+  UINT uiType = uiFlags & MB_TYPEMASK;
+  UINT uiIcon = uiFlags & MB_ICONMASK;
+  int iDefB = ((int)uiFlags & MB_DEFMASK) / 256;
+
+
+  std::vector<std::tuple<int, int>> tuples;
   
   switch (uiType) {
     case MB_OK:
-      num_buttons = 1;
-      ButtonCmdIDs[0] = IDOK;
-      ButtonCmdTexts[0] = IDS_OK;
+      tuples.push_back(std::make_tuple(IDOK, IDS_OK));
       break;
     case MB_OKCANCEL:
-      num_buttons = 2;
-      ButtonCmdIDs[0] = IDOK;
-      ButtonCmdIDs[1] = IDCANCEL;
-      ButtonCmdTexts[0] = IDS_OK;
-      ButtonCmdTexts[1] = IDS_CANCEL;
-      m_uiEscCmdId = IDCANCEL;
+      tuples.push_back(std::make_tuple(IDOK, IDS_OK));
+      tuples.push_back(std::make_tuple(IDCANCEL, IDS_CANCEL));
       break;
     case MB_ABORTRETRYIGNORE:
-      num_buttons = 3;
-      ButtonCmdIDs[0] = IDABORT;
-      ButtonCmdIDs[1] = IDRETRY;
-      ButtonCmdIDs[2] = IDIGNORE;
-      ButtonCmdTexts[0] = IDS_ABORT;
-      ButtonCmdTexts[1] = IDS_RETRY;
-      ButtonCmdTexts[2] = IDS_IGNORE;
+      tuples.push_back(std::make_tuple(IDABORT, IDS_ABORT));
+      tuples.push_back(std::make_tuple(IDRETRY, IDS_RETRY));
+      tuples.push_back(std::make_tuple(IDIGNORE, IDS_IGNORE));
       break;
     case MB_YESNOCANCEL:
-      num_buttons = 3;
-      ButtonCmdIDs[0] = IDYES;
-      ButtonCmdIDs[1] = IDNO;
-      ButtonCmdIDs[2] = IDCANCEL;
-      ButtonCmdTexts[0] = IDS_YES;
-      ButtonCmdTexts[1] = IDS_NO;
-      ButtonCmdTexts[2] = IDS_CANCEL;
-      m_uiEscCmdId = IDCANCEL;
+      tuples.push_back(std::make_tuple(IDYES, IDS_YES));
+      tuples.push_back(std::make_tuple(IDNO, IDS_NO));
+      tuples.push_back(std::make_tuple(IDCANCEL, IDS_CANCEL));
       break;
     case MB_YESNO:
-      num_buttons = 2;
-      ButtonCmdIDs[0] = IDYES;
-      ButtonCmdIDs[1] = IDNO;
-      ButtonCmdTexts[0] = IDS_YES;
-      ButtonCmdTexts[1] = IDS_NO;
+      tuples.push_back(std::make_tuple(IDYES, IDS_YES));
+      tuples.push_back(std::make_tuple(IDNO, IDS_NO));
       break;
     case MB_RETRYCANCEL:
-      num_buttons = 2;
-      ButtonCmdIDs[0] = IDRETRY;
-      ButtonCmdIDs[1] = IDCANCEL;
-      ButtonCmdTexts[0] = IDS_RETRY;
-      ButtonCmdTexts[1] = IDS_CANCEL;
-      m_uiEscCmdId = IDCANCEL;
+      tuples.push_back(std::make_tuple(IDRETRY, IDS_RETRY));
+      tuples.push_back(std::make_tuple(IDCANCEL, IDS_CANCEL));
       break;
     case MB_CANCELTRYCONTINUE:
-      num_buttons = 3;
-      ButtonCmdIDs[0] = IDCANCEL;
-      ButtonCmdIDs[1] = IDTRYAGAIN;
-      ButtonCmdIDs[2] = IDCONTINUE;
-      ButtonCmdTexts[0] = IDS_CANCEL;
-      ButtonCmdTexts[1] = IDS_TRYAGAIN;
-      ButtonCmdTexts[2] = IDS_CONTINUE;
-      m_uiEscCmdId = IDCANCEL;
+      tuples.push_back(std::make_tuple(IDCANCEL, IDS_CANCEL));
+      tuples.push_back(std::make_tuple(IDTRYAGAIN, IDS_TRYAGAIN));
+      tuples.push_back(std::make_tuple(IDCONTINUE, IDS_CONTINUE));
       break;
     default:
       ASSERT(0);
   }
 
-  if (iDefB > (num_buttons - 1))
-    iDefB = 0;
-
-  CString cs_text;
-  for (int n = 0; n < num_buttons; n++) {
-    cs_text.LoadString(ButtonCmdTexts[n]);
-    AddButton(ButtonCmdIDs[n], cs_text, n == iDefB ? TRUE : FALSE);
-  }
-
-  INT_PTR rc = DoModal();
-  return rc;
+  return AfxMessageBox(lpText, lpCaption, tuples, iDefB, uiIcon);
 }
 
 INT_PTR CGeneralMsgBox::AfxMessageBox(LPCWSTR lpszText, LPCWSTR lpCaption, UINT uiFlags)

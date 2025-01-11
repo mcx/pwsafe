@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -36,8 +36,8 @@ CStateBitmapManager::CStateBitmapManager(
     BITMAP bm;
     origBmp.GetBitmap(&bm);
 
-    int bmWidthDpi = MulDiv(bm.bmWidth, dpi, 96);
-    int bmHeightDpi = MulDiv(bm.bmHeight, dpi, 96);
+    int bmWidthDpi = MulDiv(bm.bmWidth, dpi, WinUtil::defDPI);
+    int bmHeightDpi = MulDiv(bm.bmHeight, dpi, WinUtil::defDPI);
 
     UINT bmpIndex = nId - m_idFirst;
     m_stateBitmaps.push_back(std::make_shared<CBitmap>());

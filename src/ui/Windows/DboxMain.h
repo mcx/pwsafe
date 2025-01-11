@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -315,15 +315,15 @@ public:
   void ResetIdleLockCounter(UINT event = WM_SIZE); // default arg always resets
   bool ClearClipboardData() {
     StopAuthCodeUpdateClipboardTimer();
-    return m_clipboard.ClearCBData();
+    return m_clipboard.ClearCBData() == SuccessSensitivePresent;
   }
   bool SetClipboardData(const StringX &data)
   {return m_clipboard.SetData(data.c_str());}
-  bool IsLastSensitiveClipboardItemPresent()
-  {return m_clipboard.IsLastSensitiveItemPresent();}
+  ClipboardStatus GetLastSensitiveClipboardItemStatus()
+  {return m_clipboard.GetLastSensitiveItemPresent();}
   void AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup,
     const std::vector<StringX> &vsxEmptyGroups);
-  PWSTotp::TOTP_Result GetTwoFactoryAuthenticationCode(const CItemData* pci, StringX& sxAuthCode, double* pRatio = nullptr);
+  PWSTotp::TOTP_Result GetTwoFactoryAuthenticationCode(const CItemData& ci, StringX& sxAuthCode, double* pRatio = nullptr);
   StringX GetUniqueTitle(const StringX &group, const StringX &title,
                          const StringX &user, const int IDS_MESSAGE) const
   {return m_core.GetUniqueTitle(group, title, user, IDS_MESSAGE);}
@@ -704,6 +704,7 @@ public:
   void StopAuthCodeUpdateClipboardTimer();
   void OnTwoFactorAuthCodeUpdateClipboardTimer();
   pws_os::CUUID m_uuidEntryTwoFactorAutoCopyToClipboard;
+  StringX m_sxLastAuthCode;
 
   // Generated message map functions
   //{{AFX_MSG(DboxMain)

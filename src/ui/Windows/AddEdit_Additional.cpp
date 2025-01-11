@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -173,15 +173,6 @@ BOOL CAddEdit_Additional::OnInitDialog()
 
   GetDlgItem(IDC_DEFAULTAUTOTYPE)->SetWindowText(cs_dats);
 
-  if (InitToolTip()) {
-    AddTool(IDC_STATIC_AUTO, IDS_CLICKTOCOPYEXPAND);
-    AddTool(IDC_STATIC_RUNCMD, IDS_CLICKTOCOPYEXPAND);
-    AddTool(IDC_ENTKBSHCTHOTKEY, IDS_KBS_TOOLTIP0);
-    AddTool(IDC_TWOFACTORKEY, IDS_TWOFACTORKEY);
-
-    ActivateToolTip();
-  }
-
   m_stc_autotype.SetHighlight(true, CAddEdit_PropertyPage::crefWhite);
   m_stc_runcommand.SetHighlight(true, CAddEdit_PropertyPage::crefWhite);
 
@@ -268,6 +259,12 @@ BOOL CAddEdit_Additional::OnInitDialog()
 
     // Note: clicking on IDC_AUTOTYPEHELP opens AutoType Help rather than
     // showing a Tooltip
+
+    // Old style tooltips
+    AddTool(IDC_STATIC_AUTO, IDS_CLICKTOCOPYEXPAND);
+    AddTool(IDC_STATIC_RUNCMD, IDS_CLICKTOCOPYEXPAND);
+    AddTool(IDC_ENTKBSHCTHOTKEY, IDS_KBS_TOOLTIP0);
+    AddTool(IDC_TWOFACTORKEY, IDS_TWOFACTORKEY);
 
     ActivateToolTip();
   } else {
@@ -718,8 +715,6 @@ BOOL CAddEdit_Additional::OnApply()
     }
   }
 
-  M_twofactorkey().Replace(L" ", L"");
-  M_twofactorkey().Replace(L"-", L"");
   if (!M_twofactorkey().IsEmpty()) {
     // Validate two factor key.
     // Currently, only the base32-encoded key is a non-default.
@@ -729,9 +724,10 @@ BOOL CAddEdit_Additional::OnApply()
     PWSTotp::TOTP_Result totp_result = PWSTotp::ValidateTotpConfiguration(ci_temp);
     if (totp_result != PWSTotp::Success) {
       CGeneralMsgBox gmb;
+      CString csTitle(MAKEINTRESOURCE(IDS_TWOFACTORCODE_ERROR_TITLE));
       CString csText;
-      csText.Format(IDS_ADDEDITERR_INVALID_TOTP_KEY, PWSTotp::GetTotpErrorString(totp_result).c_str(), static_cast<int>(totp_result));
-      gmb.AfxMessageBox(csText);
+      csText.Format(IDS_ADDEDITERR_INVALID_TOTP_KEY, PWSTotp::GetTotpErrorString(totp_result).c_str());
+      gmb.AfxMessageBox(csText, csTitle);
       pFocus = GetDlgItem(IDC_TWOFACTORKEY);
       goto error;
     }
@@ -836,6 +832,7 @@ void CAddEdit_Additional::OnSTCExClicked(UINT nID)
           sxData = static_cast<LPCWSTR>(M_autotype());
       } else {
         CSecString sPassword(M_realpassword()), sLastPassword(M_lastpassword());
+        const CSecString stotpauthcode = m_AEMD.pci->GetTotpAuthCode();
         if (m_AEMD.pci->IsAlias()) {
           CItemData *pciA = m_AEMD.pcore->GetBaseEntry(m_AEMD.pci);
           ASSERT(pciA != NULL);
@@ -852,6 +849,7 @@ void CAddEdit_Additional::OnSTCExClicked(UINT nID)
                                                 M_notes(),
                                                 M_URL(),
                                                 M_email(),
+                                stotpauthcode,
                                                 vactionverboffsets);
 
         // Replace any special code that we can - i.e. only \{\t} and \{ }

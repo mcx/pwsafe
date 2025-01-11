@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -32,7 +32,7 @@ PWSfileV1V2::~PWSfileV1V2()
 }
 
 // Used to warn pre-2.0 users, and to identify the database as 2.x:
-static const StringX V2ItemName(_T(" !!!Version 2 File Format!!! Please upgrade to PasswordSafe 2.0 or later"));
+static const StringX V2ItemName(_T(" !!!Version 2 File Format!!! Upgrade to PasswordSafe 2.0 or later"));
 // Used to specify the exact version
 static const StringX VersionString(_T("2.0"));
 static const StringX AltVersionString(_T("pre-2.0"));

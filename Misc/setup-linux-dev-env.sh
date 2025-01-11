@@ -74,12 +74,14 @@ case "$DISTRO" in
         if test "$DISTRO" = "ubuntu" -a \
          \( \( "$RELEASE" -eq 22 -a "$RELEASE_MONTH" -eq 10 \) -o "$RELEASE" -gt 22 \) ; then
             LIBWXDEV="libwxgtk3.2-dev"
-        elif test \( \( "$DISTRO" = "ubuntu" -o "$DISTRO" = "pop" -o "$DISTRO" = "linuxmint" \) -a "$RELEASE" -ge 20 \) -o \
+        elif test \( \( "$DISTRO" = "ubuntu" -o "$DISTRO" = "pop" \) -a "$RELEASE" -ge 20 \) -o \
          \( "$DISTRO" = "debian" -a "$RELEASE" -eq 11 \) ; then
             LIBWXDEV="libwxgtk3.0-gtk3-dev"
         elif test \( "$DISTRO" = "debian"  -a "$RELEASE" -eq 12 \) ; then
             LIBWXDEV="libwxgtk3.2-dev"
         elif test \( "$DISTRO" = "debian"  -a "$RELEASE" -eq 0 \) ; then
+            LIBWXDEV="libwxgtk3.2-dev"
+        elif test \( "$DISTRO" = "linuxmint"  -a "$RELEASE" -eq 22 \) ; then
             LIBWXDEV="libwxgtk3.2-dev"
         else
             LIBWXDEV="libwxgtk3.0-dev"
@@ -92,7 +94,7 @@ case "$DISTRO" in
         # dpkg-sig is nice-to-have, not available on debian testing?
         apt-get install -qy dpkg-sig || (echo "dpkg-sig isn't mandatory"; true)
     ;;
-    fedora)
+    fedora|fedora-asahi-remix)
         if test "$RELEASE" -lt 39 ; then
             LIBWXBASE="wxBase3-devel"
             LIBWXGTK="wxGTK3-devel"
@@ -101,19 +103,19 @@ case "$DISTRO" in
             LIBWXGTK="wxGTK-devel"
         fi
         dnf -y install cmake file-devel gcc-c++ git gtest-devel libXt-devel libXtst-devel \
-        libcurl-devel libuuid-devel libyubikey-devel \
+        libcurl-devel libuuid-devel libyubikey-devel ninja-build \
         make openssl-devel rpmdevtools rpm-sign $LIBWXBASE $LIBWXGTK xerces-c-devel \
         ykpers-devel qrencode-devel
     ;;
     arch|manjarolinux)
-        pacman -S --noconfirm base-devel cmake file git libxt qrencode wxwidgets-gtk3 \
+        pacman -S --noconfirm base-devel cmake file git libxt ninja qrencode wxwidgets-gtk3 \
         xerces-c yubikey-personalization zip
     ;;
     opensuse*)
         zypper --non-interactive install cmake file-devel fakeroot gcc-c++ \
         gettext-tools git gtest libcurl-devel libmagic1 libopenssl-devel \
         libuuid-devel libxerces-c-devel libXt-devel libXtst-devel libykpers-devel \
-        libyubikey-devel make qrencode-devel rpmdevtools wxWidgets-3_2-devel zip
+        libyubikey-devel make ninja qrencode-devel rpmdevtools wxWidgets-3_2-devel zip
     ;;
     *) die 10 "Don't know how to setup $DISTRO release $RELEASE (yet)."
 esac

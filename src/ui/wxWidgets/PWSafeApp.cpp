@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+ * Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -32,6 +32,10 @@
 #include <wx/timer.h>
 #include <wx/tokenzr.h>
 #include <wx/spinctrl.h>
+
+#if wxCHECK_VERSION(3, 1, 6)
+#include <wx/uilocale.h>
+#endif
 
 #if wxCHECK_VERSION(2,9,2)
 #include <wx/richmsgdlg.h>
@@ -133,7 +137,7 @@ static const wxCmdLineEntryDesc cmdLineDesc[] = {
    wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 #ifndef NO_YUBI
   {wxCMD_LINE_OPTION, nullptr, STR("yubi-polling-interval"),
-   STR("use specified polling interval (in ms) for YubiKey instead of default (500ms), or 0 to disable polling."),
+   STR("use specified polling interval (in ms) for YubiKey instead of default (900ms), or 0 to disable polling."),
    wxCMD_LINE_VAL_NUMBER, wxCMD_LINE_PARAM_OPTIONAL},
 #endif
   {wxCMD_LINE_PARAM, nullptr, nullptr, STR("database"),
@@ -676,14 +680,38 @@ bool PWSafeApp::ActivateLanguage(wxLanguage language, bool tryOnly)
     const wxLanguageInfo *langInfo = nullptr;
     langInfo = wxLocale::GetLanguageInfo(language);
     if(langInfo) {
+
+#if defined(__WXMAC__)
+#if wxCHECK_VERSION(3, 2, 2)
+      // Some languages have multiple locale variations.  (e.g. en_US, en_GB, etc.)
+      // Just using the two letter languane identifier (e.g. en.UTF-8) does not work
+      // on macOS, there needs to be a region as well (e.g. en_US.UTF-8), not doing
+      // so causes some inconsistent results. Specifically, the date format seems to
+      // default to en_GB in WX but not in native macOS controls, such as the date picker.
+      wxString envString;
+      wxLocaleIdent sysLocaleId = wxUILocale::GetSystemLocaleId();
+      if (langInfo->CanonicalName == sysLocaleId.GetLanguage() && !sysLocaleId.GetRegion().empty()) {
+        envString = sysLocaleId.GetName();
+
+      } else if (!langInfo->CanonicalRef.empty()) {
+        envString = langInfo->CanonicalRef;
+      }
+      if (!envString.empty()) {
+        envString += ".UTF-8";
+        setlocale(LC_CTYPE, envString.c_str());
+        setlocale(LC_TIME, envString.c_str());
+      }
+#endif // wxCHECK_VERSION
+      // This value must be set for mac OS starting with version 11, but is no problem for earlier versions, see
+      // https://github.com/wxWidgets/wxWidgets/issues/19023
+      // https://docs.wxwidgets.org/3.2/classwx_locale.html
+      setlocale(LC_NUMERIC, "C");
+#else // __WXMAC__
       wxString envString = langInfo->CanonicalName + ".UTF-8";
       setlocale(LC_CTYPE, envString.c_str());
       setlocale(LC_TIME, envString.c_str());
-#if defined(__WXMAC__)
-      // This value must be set for mac OS starting with version 11, but is no problem for earlier versions, see
-      // https://trac.wxwidgets.org/ticket/19023
-      setlocale(LC_NUMERIC, "C");
-#endif
+#endif // __WXMAC__
+
     }
   }
   return bRes;
@@ -707,7 +735,7 @@ int PWSafeApp::OnExit()
   m_idleTimer->Stop();
   recentDatabases().Save();
   PWSprefs *prefs = PWSprefs::GetInstance();
-  if (m_core.IsDbOpen()) {
+  if (m_core.IsDbFileSet()) {
     prefs->SetPref(PWSprefs::CurrentFile, m_core.GetCurFile());
     // Don't leave dangling locks!
     m_core.SafeUnlockCurFile();
@@ -796,7 +824,8 @@ void PWSafeApp::RestoreFrameCoords(void)
   long top, bottom, left, right;
   PWSprefs::GetInstance()->GetPrefRect(top, bottom, left, right);
   if (!(left == -1 && top == -1 && right == -1 && bottom == -1)) {
-    wxRect rcApp(static_cast<int>(left), static_cast<int>(top), static_cast<int>(right - left), static_cast<int>(bottom - top));
+    wxRect rcApp(static_cast<int>(left), static_cast<int>(top), 
+                 static_cast<int>(right - left + 1), static_cast<int>(bottom - top + 1));
 
     int displayWidth, displayHeight;
     ::wxDisplaySize(&displayWidth, &displayHeight);

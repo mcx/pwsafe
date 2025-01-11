@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -217,6 +217,7 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
 }
 
 struct TextRecordWriter {
+  TextRecordWriter(const TextRecordWriter&) = default;
   TextRecordWriter(const stringT &subgroup_name,
           const int &subgroup_object, const int &subgroup_function,
           const CItemData::FieldBits &bsFields,
@@ -350,6 +351,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
 }
 
 struct XMLRecordWriter {
+  XMLRecordWriter(const XMLRecordWriter&) = default;
   XMLRecordWriter(const stringT &subgroup_name,
                   const int subgroup_object, const int subgroup_function,
                   const CItemData::FieldBits &bsFields,
@@ -828,7 +830,7 @@ int PWScore::ImportXMLFile(const stringT &ImportedPrefix, const stringT &strXMLF
     return XML_FAILED_IMPORT;
   }
 
-  return ((numRenamed + numPWHErrors) == 0) ? SUCCESS : OK_WITH_ERRORS;
+  return ((numRenamed + numPWHErrors + numSkipped + numRenamedPolicies) == 0) ? SUCCESS : OK_WITH_ERRORS;
 }
 #endif
 
@@ -2000,7 +2002,6 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
   cStringXStream iss;
   unsigned char buffer[IMPORT_BUFFER_SIZE + 1];
   bool bError(false);
-  size_t total(0);
   while(!feof(fs)) {
     size_t count = fread(buffer, 1, IMPORT_BUFFER_SIZE, fs);
     if (ferror(fs)) {
@@ -2009,7 +2010,6 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
     }
     buffer[count] = '\0';
     iss << buffer;
-    total += count;
   }
 
   // Close the file
@@ -2411,7 +2411,7 @@ stringT PWScore::GetXMLPWPolicies(const OrderedItemList *pOIL)
     return retval;
 
   std::vector<StringX> vPWPolicies;
-  const bool bSubset = pOIL->size() != GetNumEntries();
+  const bool bSubset = pOIL != nullptr && pOIL->size() != GetNumEntries();
   bool bNamedPasswordPolicies = !bSubset;
   PSWDPolicyMapCIter iter;
 

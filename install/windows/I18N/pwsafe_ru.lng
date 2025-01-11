@@ -5,7 +5,7 @@
 ; first edit : Karlo Van der Gucht
 ;---------------------------------------------------
 ; Copyright 2004, David Lacy Kusters (dkusters@yahoo.com)
-; Copyright 2005-2023 Rony Shapiro <ronys@pwsafe.org>
+; Copyright 2005-2025 Rony Shapiro <ronys@pwsafe.org>
 ; 2009 extended by Karlo Van der Gucht for multiple language use
 ; 2010 extended by Karlo Van der Gucht Danish language
 ; This script may be redistributed and/or modified under the Artistic
@@ -170,10 +170,10 @@ LangString SCRCAP_PROTECTION ${LANG_RUSSIAN} "Защита от захвата �
 LangString SORRY_CANNOT_DISABLE_SCRCAP ${LANG_RUSSIAN} "Произошла ошибка при отключении защиты от захвата экрана. Защита от захвата экрана не отключена."
 
 ; LangString SORRY_CANNOT_ENABLE_SCRCAP "An error occurred setting screen capture protection to default (enabled)."
-LangString SORRY_CANNOT_ENABLE_SCRCAP ${LANG_RUSSIAN} "Произошла ошибка при настройке защиты захвата экрана по умолчанию (включена)."
+LangString SORRY_CANNOT_ENABLE_SCRCAP ${LANG_RUSSIAN} "Произошла ошибка при переключении защиты захвата экрана в значение по умолчанию (включено)."
 
 ; LangString DESC_ScrCapProtection "Enables screen capture protection."
-LangString DESC_ScrCapProtection ${LANG_RUSSIAN} "Включает защиту захвата экрана."
+LangString DESC_ScrCapProtection ${LANG_RUSSIAN} "Включить защиту от захвата экрана."
 
 ;=================================================================
 ; End of pwsafe_ru.lng

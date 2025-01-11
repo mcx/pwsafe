@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -11,12 +11,13 @@
 
 /**
  * Password Safe Core library two factor authentication related structs and
- * funtionality connecting PwSafe Core users (i.e., UI/CLI) with TOTP internals.
+ * functionality connecting PwSafe Core users (i.e., UI/CLI) with TOTP internals.
  */
 
 #include <string>
 #include <sstream>
 #include <chrono>
+#include <algorithm>
 
 #include "core.h"
 #include "core/crypto/totp.h"
@@ -40,8 +41,8 @@ namespace PWSTotp {
     case TotpKeyNotFound:
       LoadAString(error_message, IDSC_TOTP_ERROR_KEY_NOT_FOUND);
       break;
-    case ConvertKeyToUtf8Failure:
-      LoadAString(error_message, IDSC_TOTP_ERROR_KEY_UTF8_FAILURE);
+    case InvalidCharactersInKey:
+      LoadAString(error_message, IDSC_TOTP_ERROR_KEY_INVALID_CHARS);
       break;
     case KeyBase32DecodingFailure:
       LoadAString(error_message, IDSC_TOTP_ERROR_BASE32_DECODE_FAILURE);
@@ -84,6 +85,16 @@ namespace PWSTotp {
     return Success;
   }
 
+  static bool validBase32chars(const StringX &totp_key)
+  {
+    const StringX set = L"abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLOMNOPQRSTUVWXYZ234567 -";
+
+    return std::all_of(totp_key.begin(), totp_key.end(), [&set](auto c) {
+      return set.find(c) != std::string::npos;
+      });
+
+  }
+
   TOTP_Result GetNextTotpAuthCode(const CItemData& data, uint32_t& totpCode, time_t* pBasisTimeNow, double* pRatioExpired)
   {
     totpCode = TOTP_INVALID_AUTH_CODE;
@@ -103,8 +114,8 @@ namespace PWSTotp {
     CUTF8Conv conv;
     const unsigned char* utf8 = nullptr;
     size_t utf8Len = 0;
-    if (!conv.ToUTF8(totp_key, utf8, utf8Len))
-      return ConvertKeyToUtf8Failure;
+    if (!validBase32chars(totp_key) || !conv.ToUTF8(totp_key, utf8, utf8Len))
+      return InvalidCharactersInKey;
 
     RFC4648_Base32Decoder base32_key(reinterpret_cast<const char*>(utf8));
     if (!base32_key.is_decoding_successful())

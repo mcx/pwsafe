@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -170,7 +170,7 @@ void CAddEdit_PropertySheet::OnSysCommand(UINT nID, LPARAM lParam)
 
 BOOL CAddEdit_PropertySheet::OnInitDialog()
 {
-  CPWPropertySheet::OnInitDialog();
+  BOOL retval = CPWPropertySheet::OnInitDialog();
 
   // Change the Window title for Edit/View
   switch (m_AEMD.uicaller) {
@@ -211,7 +211,7 @@ BOOL CAddEdit_PropertySheet::OnInitDialog()
       break;
   }
   
-  return TRUE;  // return TRUE unless you set the focus to a control
+  return retval;  // return TRUE unless you set the focus to a control
 }
 
 void CAddEdit_PropertySheet::SetSymbolsChanged(bool bSymbolsChanged)
@@ -468,7 +468,7 @@ BOOL CAddEdit_PropertySheet::OnApply(const int &iCID)
       if (m_AEMD.ibasedata > 0) {
         // Password in alias format AND base entry exists
         // No need to check if base is an alias as already done in
-        // call to PWScore::ParseBaseEntryPWD
+        // call to PWScore::ParseAliasPassword
         m_AEMD.pci->SetPassword(L"[Alias]");
         m_AEMD.pci->SetAlias();
         ItemListIter iter = m_AEMD.pcore->Find(m_AEMD.base_uuid);

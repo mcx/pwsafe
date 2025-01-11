@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -2702,7 +2702,7 @@ bool DboxMain::LockDataBase()
   PWS_LOGIT;
 
   // Bug 1149: Check DB open before doing anything
-  if (!m_core.IsDbOpen())
+  if (!m_core.IsDbFileSet())
     return true;
 
   /*
@@ -3056,7 +3056,7 @@ void DboxMain::ChangeFont(const CFontsDialog::FontType iType)
 void DboxMain::UpdateSystemTray(const DBSTATE s)
 {
   CString csTooltip(L"");
-  if (m_core.IsDbOpen()) {
+  if (m_core.IsDbFileSet()) {
     std::wstring cdrive, cdir, cFilename, cExtn;
     pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, cFilename, cExtn);
 
@@ -4107,12 +4107,7 @@ void DboxMain::OnHideFindToolbar()
 
 void DboxMain::SetFindToolBar(bool bShow)
 {
-  if (m_FindToolBar.GetSafeHwnd() == NULL)
-    return;
-
-  SetToolBarPositions();
-
-  if (!m_FindToolBar.IsWindowVisible() && !bShow)
+  if (m_FindToolBar.GetSafeHwnd() == NULL || (!m_FindToolBar.IsWindowVisible() && !bShow))
     return;  // Nothing to do if not visible
 
   m_FindToolBar.ShowFindToolBar(bShow);

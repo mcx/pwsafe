@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -62,8 +62,7 @@ CAddEdit_Basic::CAddEdit_Basic(CWnd *pParent, st_AE_master_data *pAEMD)
     pAEMD),
   m_thread(nullptr), m_isNotesHidden(false),
   m_bInitdone(false),
-  m_bUsingNotesExternalEditor(false),
-  m_bCopyToClipboard(false)
+  m_bUsingNotesExternalEditor(false)
 {
   if (CS_SHOW.IsEmpty()) { // one-time initializations
     CS_SHOW.LoadString(IDS_SHOWPASSWORDTXT);
@@ -152,6 +151,7 @@ void CAddEdit_Basic::DoDataExchange(CDataExchange *pDX)
   DDX_Control(pDX, IDC_PASSWORD, m_ex_password);
   DDX_Control(pDX, IDC_PASSWORD2, m_ex_password2);
   DDX_Control(pDX, IDC_TWOFACTORCODE, m_btnTwoFactorCode);
+  DDX_Control(pDX, IDC_STATIC_TWOFACTORCODE, m_stcTwoFactorCode);
   DDX_Control(pDX, IDC_NOTES, m_ex_notes);
   DDX_Control(pDX, IDC_HIDDEN_NOTES, m_ex_hidden_notes);
   DDX_Control(pDX, IDC_URL, m_ex_URL);
@@ -190,6 +190,7 @@ BEGIN_MESSAGE_MAP(CAddEdit_Basic, CAddEdit_PropertyPage)
   ON_BN_CLICKED(IDC_GENERATEPASSWORD, OnGeneratePassword)
   ON_BN_CLICKED(IDC_COPYPASSWORD, OnCopyPassword)
   ON_BN_CLICKED(IDC_TWOFACTORCODE, OnCopyTwoFactorCode)
+  ON_STN_CLICKED(IDC_STATIC_TWOFACTORCODE, OnTwoFactorCodeStaticClicked)
   ON_BN_CLICKED(IDC_LAUNCH, OnLaunch)
   ON_BN_CLICKED(IDC_SENDEMAIL, OnSendEmail)
 
@@ -253,6 +254,11 @@ BOOL CAddEdit_Basic::OnInitDialog()
   // Set plain text - not that it seems to do much!
   m_ex_notes.SetTextMode(TM_PLAINTEXT);
 
+  m_bTwoFactorCodeShowStatic = false;
+  m_stcTwoFactorCode.SetWindowText(m_pszNotShowingCode);
+  pFonts->CreateFontMatchingWindowHeight(m_stcTwoFactorCode, m_fontTwoFactorCodeStatic, 8);
+  m_stcTwoFactorCode.SetFont(&m_fontTwoFactorCodeStatic);
+
   PWSprefs *prefs = PWSprefs::GetInstance();
 
   // Set Notes font!
@@ -310,7 +316,6 @@ BOOL CAddEdit_Basic::OnInitDialog()
   m_stc_URL.SetHighlight(true, CAddEdit_PropertyPage::crefWhite);
   m_stc_email.SetHighlight(true, CAddEdit_PropertyPage::crefWhite);
 
-  m_ex_group.ChangeColour();
   GetDlgItem(IDC_LAUNCH)->EnableWindow(M_URL().IsEmpty() ? FALSE : TRUE);
   GetDlgItem(IDC_SENDEMAIL)->EnableWindow(M_email().IsEmpty() ? FALSE : TRUE);
 
@@ -459,7 +464,8 @@ BOOL CAddEdit_Basic::OnInitDialog()
 
   UpdateData(FALSE);
   m_bInitdone = true;
-  return TRUE;  // return TRUE unless you set the focus to a control
+  GetDlgItem(IDC_TITLE)->SetFocus();
+  return FALSE;  // return TRUE unless you set the focus to a control
 }
 
 void CAddEdit_Basic::OnHelp()
@@ -678,10 +684,12 @@ BOOL CAddEdit_Basic::OnApply()
   if (M_uicaller() == IDS_VIEWENTRY || M_protected() != 0)
     return FALSE; //CAddEdit_PropertyPage::OnApply();
 
-  CWnd *pFocus(nullptr);
+  CWnd* pFocus(nullptr);
   CGeneralMsgBox gmb;
   ItemListIter listindex;
-  bool bPswdIsInAliasFormat, b_msg_issued;
+  bool bPswdIsInAliasFormat;
+  BaseEntryParms pl;
+
   CSecString csBase(L"");
 
   UpdateData(TRUE);
@@ -739,8 +747,9 @@ BOOL CAddEdit_Basic::OnApply()
       gmb.AfxMessageBox(IDS_ENTRYEXISTS, MB_OK | MB_ICONASTERISK);
       pFocus = &m_ex_title;
       goto error;
-    } else { // Edit entry
-      const CItemData &listItem = GetMainDlg()->GetEntryAt(listindex);
+    }
+    else { // Edit entry
+      const CItemData& listItem = GetMainDlg()->GetEntryAt(listindex);
       if (listItem.GetUUID() != M_pci()->GetUUID()) {
         gmb.AfxMessageBox(IDS_ENTRYEXISTS, MB_OK | MB_ICONASTERISK);
         pFocus = &m_ex_title;
@@ -749,90 +758,95 @@ BOOL CAddEdit_Basic::OnApply()
     }
   }
 
-  // Returns true if in alias format, false if not
+  pl.InputType = M_pci()->GetEntryType(); // where we're coming from
+  bPswdIsInAliasFormat = M_pcore()->ParseAliasPassword(M_realpassword(), pl);
 
-  // ibasedata:
-  //  +n: password contains (n-1) colons and base entry found (n = 1, 2 or 3)
-  //   0: password not in alias format
-  //  -n: password contains (n-1) colons but base entry NOT found (n = 1, 2 or 3)
+  if (bPswdIsInAliasFormat)
+  {
+    const StringX selfGTU = L"[" + M_group() + L":" + M_title() + L":" + M_username() + L"]";
+    StringX errmess;
+    bool yesNoError;
 
-  // "bMultipleEntriesFound" is set if no "unique" base entry could be found and
-  // is only valid if n = -1 or -2.
-  bPswdIsInAliasFormat = CheckNewPassword(M_group(), M_title(), M_username(), M_realpassword(),
-                                          M_uicaller() != IDS_ADDENTRY, CItemData::ET_ALIAS,
-                                          M_base_uuid(), M_ibasedata(), b_msg_issued);
+    bool isAliasValid = M_pcore()->CheckAliasValidity(pl, selfGTU, errmess, yesNoError);
 
-  if (!bPswdIsInAliasFormat && M_ibasedata() != 0) {
-    if (!b_msg_issued)
-      gmb.AfxMessageBox(IDS_MUSTHAVETARGET, MB_OK);
 
-    UpdateData(FALSE);
-    pFocus = &m_ex_password;
-    goto error;
-  }
-
-  if (bPswdIsInAliasFormat && M_ibasedata() > 0) {
-    if (M_original_entrytype() == CItemData::ET_ALIASBASE ||
-        M_original_entrytype() == CItemData::ET_SHORTCUTBASE) {
-      // User is trying to change a base to an alias!
-      CString cs_errmsg, cs_title, cs_base, cs_alias;
-      cs_base.LoadString(M_original_entrytype() == CItemData::ET_ALIASBASE ? IDS_EXP_ABASE : IDS_EXP_SBASE);
-      cs_alias.LoadString(IDS_EXP_ALIAS);
-      cs_title.Format(IDS_CHANGINGBASEENTRY, static_cast<LPCWSTR>(cs_base),
-                      static_cast<LPCWSTR>(cs_alias));
-      cs_errmsg.Format(M_original_entrytype() == CItemData::ET_ALIASBASE ?
-                       IDS_CHANGINGBASEENTRY1 : IDS_CHANGINGBASEENTRY2,
-                       static_cast<LPCWSTR>(cs_alias));
-      int rc = static_cast<int>(gmb.MessageBox(cs_errmsg, cs_title, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON2));
-
-      if (rc == IDNO) {
+    if (!isAliasValid) {
+      UINT uiFlags = yesNoError ? (MB_YESNO | MB_DEFBUTTON2) : MB_OK;
+      if (gmb.AfxMessageBox(errmess.c_str(), nullptr, uiFlags) == IDNO) {
         UpdateData(FALSE);
         pFocus = &m_ex_password;
         goto error;
       }
-
-      pws_os::CUUID entry_uuid = M_pci()->GetUUID();
-      M_pci()->SetAlias();
-      M_pci()->SetUUID(entry_uuid, CItemData::ALIASUUID);
-      ShowHideBaseInfo(CItemData::ET_ALIAS, csBase);
     }
-  }
-  //End check
 
-  if (!bPswdIsInAliasFormat && M_original_entrytype() == CItemData::ET_ALIAS) {
-    // User has made this a normal entry
-    M_pci()->SetNormal();
-    ShowHideBaseInfo(CItemData::ET_NORMAL, csBase);
-  }
+    M_base_uuid() = pl.base_uuid;
+    M_ibasedata() = pl.ibasedata;
 
-  if (bPswdIsInAliasFormat && M_ibasedata() > 0) {
-    if (M_original_base_uuid() != pws_os::CUUID::NullUUID() &&
+    // If we're creating a new alias, life's simple
+    if (M_uicaller() == IDS_ADDENTRY) {
+      M_pci()->SetAlias();
+      ShowHideBaseInfo(CItemData::ET_ALIAS, selfGTU.c_str());
+    }
+    else {
+      // Following is for editing an existing entry
+
+      if (M_original_entrytype() == CItemData::ET_ALIASBASE ||
+        M_original_entrytype() == CItemData::ET_SHORTCUTBASE) {
+        // User is trying to change a base to an alias!
+        CString cs_errmsg, cs_title, cs_base, cs_alias;
+        cs_base.LoadString(M_original_entrytype() == CItemData::ET_ALIASBASE ? IDS_EXP_ABASE : IDS_EXP_SBASE);
+        cs_alias.LoadString(IDS_EXP_ALIAS);
+        cs_title.Format(IDS_CHANGINGBASEENTRY, static_cast<LPCWSTR>(cs_base),
+          static_cast<LPCWSTR>(cs_alias));
+        cs_errmsg.Format(M_original_entrytype() == CItemData::ET_ALIASBASE ?
+          IDS_CHANGINGBASEENTRY1 : IDS_CHANGINGBASEENTRY2,
+          static_cast<LPCWSTR>(cs_alias));
+        int rc = static_cast<int>(gmb.MessageBox(cs_errmsg, cs_title, MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON2));
+
+        if (rc == IDNO) {
+          UpdateData(FALSE);
+          pFocus = &m_ex_password;
+          goto error;
+        }
+
+        pws_os::CUUID entry_uuid = M_pci()->GetUUID();
+        M_pci()->SetAlias();
+        M_pci()->SetUUID(entry_uuid, CItemData::ALIASUUID);
+        ShowHideBaseInfo(CItemData::ET_ALIAS, csBase);
+      }
+    }
+    //End check
+
+    if (bPswdIsInAliasFormat && M_ibasedata() > 0) {
+      if (M_original_base_uuid() != pws_os::CUUID::NullUUID() &&
         M_original_base_uuid() != M_base_uuid()) {
-      // User has changed the alias to point to a different base entry
-      CItemData *pbci(nullptr);
-      ItemListIter iter = M_pcore()->Find(M_base_uuid());
-      if (iter != M_pcore()->GetEntryEndIter())
-        pbci = &iter->second;
+        // User has changed the alias to point to a different base entry
+        CItemData* pbci(nullptr);
+        ItemListIter iter = M_pcore()->Find(M_base_uuid());
+        if (iter != M_pcore()->GetEntryEndIter())
+          pbci = &iter->second;
 
-      ASSERT(pbci != NULL);
+        ASSERT(pbci != NULL);
 
-      if (pbci != nullptr) {
-        csBase = L"[" +
-          pbci->GetGroup() + L":" +
-          pbci->GetTitle() + L":" +
-          pbci->GetUser() + L"]";
-      } else
-        csBase.Empty();
+        if (pbci != nullptr) {
+          csBase = L"[" +
+            pbci->GetGroup() + L":" +
+            pbci->GetTitle() + L":" +
+            pbci->GetUser() + L"]";
+        }
+        else
+          csBase.Empty();
 
-      M_pci()->SetAlias(); // Still an alias
-      M_pci()->SetBaseUUID(M_base_uuid());
-      ShowHideBaseInfo(CItemData::ET_ALIAS, csBase);
+        M_pci()->SetAlias(); 
+        M_pci()->SetBaseUUID(M_base_uuid());
+        ShowHideBaseInfo(CItemData::ET_ALIAS, csBase);
+      }
     }
 
     if (M_original_base_uuid() == pws_os::CUUID::NullUUID() &&
-        M_original_base_uuid() != M_base_uuid()) {
+      M_original_base_uuid() != M_base_uuid()) {
       // User has changed the normal entry into an alias
-      CItemData *pbci(nullptr);
+      CItemData* pbci(nullptr);
       auto iter = M_pcore()->Find(M_base_uuid());
       if (iter != M_pcore()->GetEntryEndIter())
         pbci = &iter->second;
@@ -843,7 +857,8 @@ BOOL CAddEdit_Basic::OnApply()
           pbci->GetGroup() + L":" +
           pbci->GetTitle() + L":" +
           pbci->GetUser() + L"]";
-      } else
+      }
+      else
         csBase.Empty();
 
       pws_os::CUUID entry_uuid = M_pci()->GetUUID();
@@ -852,8 +867,14 @@ BOOL CAddEdit_Basic::OnApply()
       M_pci()->SetUUID(entry_uuid, CItemData::ALIASUUID);
       ShowHideBaseInfo(CItemData::ET_ALIAS, csBase);
     }
+  } else // password's not in alias format. Check if we're changing an alias back to a normal entry
+  {
+    if (M_original_entrytype() == CItemData::ET_ALIAS) {
+      // User has made this a normal entry
+      M_pci()->SetNormal();
+      ShowHideBaseInfo(CItemData::ET_NORMAL, csBase);
+    }
   }
-
   return CAddEdit_PropertyPage::OnApply();
 
 error:
@@ -870,7 +891,7 @@ error:
   return FALSE;
 }
 
-void CAddEdit_Basic::ShowHideBaseInfo(const CItemData::EntryType &entrytype, CSecString &csBase)
+void CAddEdit_Basic::ShowHideBaseInfo(const CItemData::EntryType &entrytype, const CSecString &csBase)
 {
   switch (entrytype) {
   case CItemData::ET_ALIAS:
@@ -1244,6 +1265,8 @@ void CAddEdit_Basic::OnLaunch()
   std::vector<size_t> vactionverboffsets;
 
   CSecString sPassword(M_realpassword()), sLastPassword(M_lastpassword());
+  const CSecString stotpauthcode = m_AEMD.pci->GetTotpAuthCode();
+
   if (m_AEMD.pci->IsAlias()) {
     CItemData *pciA = m_AEMD.pcore->GetBaseEntry(m_AEMD.pci);
     ASSERT(pciA != NULL);
@@ -1260,6 +1283,7 @@ void CAddEdit_Basic::OnLaunch()
                                                        M_notes(),
                                                        M_URL(),
                                                        M_email(),
+                                                       stotpauthcode,
                                                        vactionverboffsets);
 
   const bool bDoAutoType = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -1577,6 +1601,7 @@ error_exit:
   return 0L;
 }
 
+#include "core.h" // XXX temporary until refactor finished
 bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title,
                                       const StringX &user, const StringX &password,
                                       const bool bIsEdit, const CItemData::EntryType InputType, 
@@ -1591,7 +1616,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
   BaseEntryParms pl;
   pl.InputType = InputType;
 
-  bool bPswdIsInAliasFormat = M_pcore()->ParseBaseEntryPWD(password, pl);
+  bool bPswdIsInAliasFormat = M_pcore()->ParseAliasPassword(password, pl);
 
   // Copy data back before possibly returning
   ibasedata = pl.ibasedata;
@@ -1607,7 +1632,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
     // In Edit, check user isn't changing entry to point to itself (circular/self reference)
     // Can't happen during Add as already checked entry does not exist so if accepted the
     // password would be treated as an unusual "normal" password
-    gmb.AfxMessageBox(IDS_ALIASCANTREFERTOITSELF, MB_OK);
+    gmb.AfxMessageBox(IDSC_ALIASCANTREFERTOITSELF, MB_OK);
     return false;
   }
 
@@ -1630,16 +1655,16 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
     }
 
     CString cs_msg;
-    const CString cs_msgA(MAKEINTRESOURCE(IDS_ALIASNOTFOUNDA));
-    const CString cs_msgZ(MAKEINTRESOURCE(IDS_ALIASNOTFOUNDZ));
+    const CString cs_msgA(MAKEINTRESOURCE(IDSC_ALIASNOTFOUNDA));
+    const CString cs_msgZ(MAKEINTRESOURCE(IDSC_ALIASNOTFOUNDZ));
     INT_PTR rc(IDNO);
     switch (pl.ibasedata) {
       case -1: // [t] - must be title as this is the only mandatory field
         if (pl.bMultipleEntriesFound)
-          cs_msg.Format(IDS_ALIASNOTFOUND0A,
+          cs_msg.Format(IDSC_ALIASNOTFOUND0A,
                         pl.csPwdTitle.c_str());  // multiple entries exist with title=x
         else
-          cs_msg.Format(IDS_ALIASNOTFOUND0B,
+          cs_msg.Format(IDSC_ALIASNOTFOUND0B,
                         pl.csPwdTitle.c_str());  // no entry exists with title=x
         rc = gmb.AfxMessageBox(cs_msgA + cs_msg + cs_msgZ,
                                NULL, MB_YESNO | MB_DEFBUTTON2);
@@ -1647,13 +1672,13 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
       case -2: // [g,t], [t:u]
         // In this case the 2 fields from the password are in Group & Title
         if (pl.bMultipleEntriesFound)
-          cs_msg.Format(IDS_ALIASNOTFOUND1A, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND1A, 
                         pl.csPwdGroup.c_str(),
                         pl.csPwdTitle.c_str(),
                         pl.csPwdGroup.c_str(),
                         pl.csPwdTitle.c_str());
         else
-          cs_msg.Format(IDS_ALIASNOTFOUND1B, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND1B, 
                         pl.csPwdGroup.c_str(),
                         pl.csPwdTitle.c_str(),
                         pl.csPwdGroup.c_str(),
@@ -1668,24 +1693,24 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
         const bool bUE = pl.csPwdUser.empty();
         if (bTE) {
           // Title is mandatory for all entries!
-          gmb.AfxMessageBox(IDS_BASEHASNOTITLE, MB_OK);
+          gmb.AfxMessageBox(IDSC_BASEHASNOTITLE, MB_OK);
           rc = IDNO;
           break;
         } else if (!bGE && !bUE)  // [x:y:z]
-          cs_msg.Format(IDS_ALIASNOTFOUND2A, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND2A, 
                         pl.csPwdGroup.c_str(), 
                         pl.csPwdTitle.c_str(), 
                         pl.csPwdUser.c_str());
         else if (!bGE && bUE)     // [x:y:]
-          cs_msg.Format(IDS_ALIASNOTFOUND2B, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND2B, 
                         pl.csPwdGroup.c_str(), 
                         pl.csPwdTitle.c_str());
         else if (bGE && !bUE)     // [:y:z]
-          cs_msg.Format(IDS_ALIASNOTFOUND2C, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND2C, 
                         pl.csPwdTitle.c_str(), 
                         pl.csPwdUser.c_str());
         else if (bGE && bUE)      // [:y:]
-          cs_msg.Format(IDS_ALIASNOTFOUND0B, 
+          cs_msg.Format(IDSC_ALIASNOTFOUND0B, 
                         pl.csPwdTitle.c_str());
 
         rc = gmb.AfxMessageBox(cs_msgA + cs_msg + cs_msgZ, 
@@ -1705,7 +1730,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
     if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_ALIASBASE) {
       // An alias can only point to a normal entry or an alias base entry
       CString cs_msg;
-      cs_msg.Format(IDS_BASEISALIAS, 
+      cs_msg.Format(IDSC_BASEISALIAS, 
                     pl.csPwdGroup.c_str(),
                     pl.csPwdTitle.c_str(),
                     pl.csPwdUser.c_str());
@@ -1715,7 +1740,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
       if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_ALIASBASE) {
         // An alias can only point to a normal entry or an alias base entry
         CString cs_msg;
-        cs_msg.Format(IDS_ABASEINVALID, 
+        cs_msg.Format(IDSC_ABASEINVALID, 
                       pl.csPwdGroup.c_str(),
                       pl.csPwdTitle.c_str(), 
                       pl.csPwdUser.c_str());
@@ -1793,10 +1818,32 @@ void CAddEdit_Basic::OnCopyTwoFactorCode()
     return;
   }
 
-  m_bCopyToClipboard = true;
+  m_bTwoFactorCodeClipboard = true;
+  m_bTwoFactorCodeClipboardFirstTime = true;
   UpdateData(TRUE);
-  m_sxLastAuthCode.clear();
   UpdateAuthCode();
+}
+
+void CAddEdit_Basic::OnTwoFactorCodeStaticClicked()
+{
+  CSecString sTwoFactorKey(GetTwoFactorKey());
+  if (sTwoFactorKey.IsEmpty()) {
+    CGeneralMsgBox gmb;
+    CString cs_title(MAKEINTRESOURCE(IDS_TWOFACTORCODE_ERROR_TITLE));
+    CString cs_message(MAKEINTRESOURCE(IDS_TWOFACTORCODEBUTTON_NOTCONFIGURED));
+    gmb.MessageBox(cs_message, cs_title, MB_OK | MB_ICONEXCLAMATION);
+    return;
+  }
+
+  m_bTwoFactorCodeShowStatic = !m_bTwoFactorCodeShowStatic;
+  if (m_bTwoFactorCodeShowStatic) {
+    m_sxLastAuthCode.clear();
+    UpdateAuthCode();
+  } else {
+    m_stcTwoFactorCode.SetWindowText(m_pszNotShowingCode);
+    if (!m_bTwoFactorCodeClipboard)
+      m_sxLastAuthCode.clear();
+  }
 }
 
 CSecString CAddEdit_Basic::GetTwoFactorKey()
@@ -1812,11 +1859,11 @@ CSecString CAddEdit_Basic::GetTwoFactorKey()
   return twoFactorKey;
 }
 
-bool CAddEdit_Basic::UpdateAuthCode()
+void CAddEdit_Basic::UpdateAuthCode()
 {
   CItemData* pci_cred = M_pci_credential();
   if (!pci_cred)
-    return false;
+    return;
 
   // During Add/Edit, the UI may have updated 2FA info.
   // Use latest 2FA info to produce the auth code.
@@ -1825,31 +1872,54 @@ bool CAddEdit_Basic::UpdateAuthCode()
 
   StringX sxAuthCode;
   double ratio;
-  auto r = GetMainDlg()->GetTwoFactoryAuthenticationCode(&ciTemp, sxAuthCode, &ratio);
+  auto r = GetMainDlg()->GetTwoFactoryAuthenticationCode(ciTemp, sxAuthCode, &ratio);
   if (r != PWSTotp::Success) {
     StopAuthenticationCodeUi();
-    return false;
+    return;
   }
-
-  bool bNewCode = false;
-  if (m_bCopyToClipboard && (m_sxLastAuthCode.empty() || GetMainDlg()->IsLastSensitiveClipboardItemPresent())) {
-    if (sxAuthCode != m_sxLastAuthCode) {
-      bNewCode = true;
-      m_bCopyToClipboard = GetMainDlg()->SetClipboardData(sxAuthCode);
-      ASSERT(m_bCopyToClipboard);
-      if (m_bCopyToClipboard)
-        GetMainDlg()->UpdateLastClipboardAction(ClipboardDataSource::AuthCode);
-      m_sxLastAuthCode = sxAuthCode;
-    }
-  } else
-    m_bCopyToClipboard = false;
-
-  if (!m_bCopyToClipboard)
-    m_sxLastAuthCode.clear();
 
   m_btnTwoFactorCode.SetPercent(100.0 * ratio);
 
-  return bNewCode;
+  if (!m_bTwoFactorCodeClipboard && !m_bTwoFactorCodeShowStatic) {
+    m_sxLastAuthCode.clear();
+    return;
+  }
+
+  if (!m_bTwoFactorCodeClipboardFirstTime && sxAuthCode == m_sxLastAuthCode)
+    return;
+
+  if (m_bTwoFactorCodeShowStatic)
+    m_stcTwoFactorCode.SetWindowText(sxAuthCode.c_str());
+
+  if (m_bTwoFactorCodeClipboard) {
+
+    ClipboardStatus clipboardStatus = GetMainDlg()->GetLastSensitiveClipboardItemStatus();
+
+    // If not first time and last copy not present on clipboard...
+    if (!m_bTwoFactorCodeClipboardFirstTime && clipboardStatus != SuccessSensitivePresent) {
+
+      if (clipboardStatus != ClipboardNotAvailable) {
+        m_bTwoFactorCodeClipboard = false;
+        m_sxLastAuthCode.clear();
+      }
+
+      return;
+    }
+
+    m_bTwoFactorCodeClipboard = GetMainDlg()->SetClipboardData(sxAuthCode);
+    ASSERT(m_bTwoFactorCodeClipboard);
+    if (!m_bTwoFactorCodeClipboard) {
+      m_sxLastAuthCode.clear();
+      return;
+    }
+
+    m_bTwoFactorCodeClipboardFirstTime = false;
+
+    GetMainDlg()->UpdateLastClipboardAction(ClipboardDataSource::AuthCode);
+  }
+
+  if (m_bTwoFactorCodeShowStatic || m_bTwoFactorCodeClipboard)
+    m_sxLastAuthCode = sxAuthCode;
 }
 
 void CAddEdit_Basic::OnTimer(UINT_PTR nIDEvent)
@@ -1896,14 +1966,20 @@ PWSTotp::TOTP_Result CAddEdit_Basic::ValidateTotpConfiguration(double *pRatio)
 void CAddEdit_Basic::SetupAuthenticationCodeUiElements()
 {
   if (!GetTwoFactorKey().IsEmpty() && ValidateTotpConfiguration() == PWSTotp::Success) {
+    m_stcTwoFactorCode.ShowWindow(SW_SHOW);
     m_btnTwoFactorCode.SetPieColor(RGB(0, 192, 255));
     m_btnTwoFactorCode.SetPercent(0);
     AddTool(IDC_TWOFACTORCODE, IDS_TWOFACTORCODEBUTTON_CONFIGURED);
+    AddTool(IDC_STATIC_TWOFACTORCODE, IDS_TWOFACTORCODESTATIC_CONFIGURED);
     SetTimer(TIMER_TWO_FACTOR_AUTH_CODE_COUNTDOWN, USER_TIMER_MINIMUM, NULL);
   } else {
     m_btnTwoFactorCode.SetPieColor(::GetSysColor(COLOR_GRAYTEXT));
     m_btnTwoFactorCode.SetPercent(25);
     AddTool(IDC_TWOFACTORCODE, IDS_TWOFACTORCODEBUTTON_NOTCONFIGURED);
+    AddTool(IDC_STATIC_TWOFACTORCODE, IDS_TWOFACTORCODEBUTTON_NOTCONFIGURED);
+    m_bTwoFactorCodeShowStatic = false;
+    m_stcTwoFactorCode.SetWindowText(m_pszNotShowingCode);
+    m_stcTwoFactorCode.ShowWindow(SW_HIDE);
     StopAuthenticationCodeUi();
   }
 }
@@ -1911,7 +1987,10 @@ void CAddEdit_Basic::SetupAuthenticationCodeUiElements()
 void CAddEdit_Basic::StopAuthenticationCodeUi()
 {
   KillTimer(TIMER_TWO_FACTOR_AUTH_CODE_COUNTDOWN);
-  m_bCopyToClipboard = false;
+  m_bTwoFactorCodeClipboard = false;
+  m_bTwoFactorCodeClipboardFirstTime = false;
+  m_bTwoFactorCodeShowStatic = false;
+  m_sxLastAuthCode.clear();
 }
 
 void CAddEdit_Basic::SetUpDependentsCombo()

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2023 Rony Shapiro <ronys@pwsafe.org>.
+* Copyright (c) 2003-2025 Rony Shapiro <ronys@pwsafe.org>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -38,6 +38,8 @@
 #pragma once
 
 #include "RichEditCtrlExtn.h"
+#include <vector>
+#include <tuple>
 
 /////////////////////////////////////////////////////////////////////////////
 // CGeneralMsgBox
@@ -58,9 +60,17 @@ public:
     LPCWSTR lpTextBeforeAllowed, LPCWSTR lpTextAfterAllowed,
     LPCWSTR lpCaption = nullptr,
     UINT uiFlags = MB_OK, DWORD dwSeconds = 0);
-  INT_PTR MessageBox(LPCWSTR lpText, LPCWSTR lpCaption, UINT uiFlags = MB_OK);
+  INT_PTR MessageBox(LPCWSTR lpText, LPCWSTR lpCaption, UINT uiFlags = MB_OK); // rename, move to private ???
   INT_PTR AfxMessageBox(LPCWSTR lpszText, LPCWSTR lpCaption = nullptr, UINT uiFlags = MB_OK);
   INT_PTR AfxMessageBox(UINT uiIDPrompt, UINT uiFlags = MB_OK);
+  INT_PTR AfxMessageBox(LPCWSTR lpszText, LPCWSTR lpCaption, const std::vector<std::tuple<int, int>>& tuples, int defBtn = 0, UINT uiIcon = 0);
+  INT_PTR AfxMessageBox(UINT uiIDPrompt, LPCWSTR lpCaption, const std::vector<std::tuple<int, int>>& tuples, int defBtn = 0, UINT uiIcon = 0)
+  {
+    CString cs_text;
+    cs_text.LoadString(uiIDPrompt);
+    return AfxMessageBox(cs_text, lpCaption, tuples, defBtn, uiIcon);
+  }
+
 
   // Execute
   INT_PTR DoModal();
