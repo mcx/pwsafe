@@ -61,5 +61,6 @@
   <url type="faq">https://pwsafe.org/faq.shtml</url>
   <url type="contact">https://pwsafe.org/contact.php</url>
   <url type="donation">https://sourceforge.net/p/passwordsafe/donate/</url>
+  <url type="vcs-browser">https://github.com/pwsafe/pwsafe/</url>
   <content_rating type="oars-1.1"/>
 </component>
